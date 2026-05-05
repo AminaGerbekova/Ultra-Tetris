@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris Clean Fix</title>
+<title>Tetris Fixed</title>
 
 <style>
 body{
@@ -45,7 +45,6 @@ background:#222;
 color:white;
 border:1px solid #444;
 border-radius:6px;
-cursor:pointer;
 }
 
 /* overlays */
@@ -65,7 +64,7 @@ z-index:10;
 
 .hidden{display:none}
 
-/* mobile */
+/* mobile controls */
 #controls{
 position:absolute;
 bottom:10px;
@@ -122,26 +121,24 @@ const ctx=canvas.getContext("2d");
 
 const COLS=10, ROWS=20, SIZE=30;
 
-let grid,piece;
+let grid;
+let piece;
 let score=0,level=1;
 
 let running=false;
 let paused=false;
 
-/* screens */
 const startScr=document.getElementById("start");
 const pauseScr=document.getElementById("pause");
 const overScr=document.getElementById("over");
 
-/* mobile detect */
+/* speed */
 const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-/* SPEED */
-let baseSpeed = isMobile ? 1000 : 1300;
+let baseSpeed = isMobile ? 1100 : 1400;
 let dropInterval = baseSpeed;
 
-let dropCounter = 0;
-let lastTime = 0;
+let dropCounter=0;
+let lastTime=0;
 
 /* shapes */
 const shapes=[
@@ -154,7 +151,7 @@ const shapes=[
 
 const colors=["cyan","yellow","purple","orange","blue"];
 
-/* create */
+/* NEW PIECE */
 function newPiece(){
 let i=Math.floor(Math.random()*shapes.length);
 return{
@@ -164,31 +161,36 @@ x:3,y:0
 };
 }
 
-/* reset */
+/* RESET */
 function reset(){
 grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
 piece=newPiece();
 score=0;
 level=1;
 dropInterval=baseSpeed;
-updateUI();
 }
 
-/* collision */
+/* 🔥 FIXED COLLISION (ГЛАВНОЕ ИСПРАВЛЕНИЕ) */
 function collide(px=piece.x,py=piece.y,shape=piece.shape){
 for(let y=0;y<shape.length;y++){
 for(let x=0;x<shape[y].length;x++){
+
 if(shape[y][x]){
-let nx=px+x,ny=py+y;
+let nx=px+x;
+let ny=py+y;
+
+// границы
 if(nx<0||nx>=COLS||ny>=ROWS) return true;
-if(ny>=0&&grid[ny][nx]) return true;
+
+// защита от undefined + проверка поля
+if(ny>=0 && grid[ny] && grid[ny][nx]) return true;
 }
 }
 }
 return false;
 }
 
-/* merge */
+/* MERGE */
 function merge(){
 piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
@@ -197,15 +199,16 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
-/* clear */
+/* CLEAR */
 function clearLines(){
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
 grid.splice(y,1);
 grid.unshift(Array(COLS).fill(0));
-score+=10;
 
+score+=10;
 level=Math.floor(score/80)+1;
+
 dropInterval=Math.max(300,baseSpeed-(level-1)*80);
 
 y++;
@@ -220,7 +223,7 @@ document.getElementById("score").innerText="Score: "+score;
 document.getElementById("level").innerText="Level: "+level;
 }
 
-/* draw */
+/* DRAW */
 function drawBlock(x,y,color){
 ctx.fillStyle=color;
 ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
@@ -234,7 +237,8 @@ ctx.fillRect(0,0,300,600);
 
 grid.forEach((r,y)=>{
 r.forEach((v,x)=>{
-if(v) drawBlock(x,y,v);});
+if(v) drawBlock(x,y,v);
+});
 });
 
 piece.shape.forEach((r,y)=>{
@@ -244,15 +248,17 @@ if(v) drawBlock(piece.x+x,piece.y+y,piece.color);
 });
 }
 
-/* lock */
+/* LOCK */
 function lock(){
 merge();
 clearLines();
+
 piece=newPiece();
+
 if(collide()) gameOver();
 }
 
-/* LOOP FIXED */
+/* LOOP (СТАБИЛЬНЫЙ) */
 function update(time=0){
 if(!running) return;
 
@@ -278,7 +284,7 @@ draw();
 requestAnimationFrame(update);
 }
 
-/* PC */
+/* CONTROLS */
 document.addEventListener("keydown",e=>{
 if(!running||paused) return;
 
@@ -305,7 +311,7 @@ piece.shape.map(r=>r[i]).reverse()
 if(!collide(piece.x,piece.y,rot)) piece.shape=rot;
 }
 
-/* GAME STATE */
+/* STATES */
 function startGame(){
 startScr.classList.add("hidden");
 overScr.classList.add("hidden");
@@ -332,6 +338,7 @@ running=false;
 overScr.classList.remove("hidden");
 }
 
+/* START */
 reset();
 update();
 
