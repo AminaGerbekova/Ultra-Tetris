@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Ultra Tetris Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tetris Mobile Pro</title>
 
 <style>
 body{
@@ -14,12 +15,13 @@ align-items:center;
 height:100vh;
 font-family:Arial;
 color:white;
+overflow:hidden;
 }
 
 #wrap{
-display:flex;
-gap:20px;
 position:relative;
+display:flex;
+gap:15px;
 }
 
 canvas{
@@ -29,52 +31,54 @@ image-rendering: pixelated;
 }
 
 #panel{
-width:220px;
+width:200px;
 background:#111;
-padding:15px;
-border-radius:12px;
+padding:10px;
+border-radius:10px;
 }
-
-h2{margin:0 0 10px 0;}
 
 button{
 width:100%;
-padding:10px;
-margin-top:8px;
+margin-top:6px;
+padding:8px;
 background:#222;
 color:white;
 border:1px solid #444;
-cursor:pointer;
 border-radius:6px;
 }
 
-button:hover{background:#333}
-
-.small{font-size:12px;opacity:0.7}
-
-/* OVERLAYS */
+/* overlays */
 .overlay{
 position:absolute;
 top:0;left:0;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.92);
+background:rgba(0,0,0,0.9);
 display:flex;
-justify-content:center;
 align-items:center;
+justify-content:center;
 flex-direction:column;
-font-size:34px;
-font-weight:bold;
-text-align:center;
+font-size:28px;
 z-index:10;
 }
 
-.hidden{display:none;}
+.hidden{display:none}
 
-/* PAUSE TEXT */
-#pause{
-font-size:60px;
-letter-spacing:4px;
+/* mobile controls */
+#controls{
+position:absolute;
+bottom:10px;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+gap:10px;
+z-index:20;
+}
+
+#controls button{
+width:55px;
+height:55px;
+font-size:18px;
 }
 </style>
 </head>
@@ -86,57 +90,42 @@ letter-spacing:4px;
 <canvas id="game" width="300" height="600"></canvas>
 
 <div id="panel">
-<h2>TETRIS PRO</h2>
-
+<h3>TETRIS</h3>
 <p id="score">Score: 0</p>
 <p id="level">Level: 1</p>
 
-<h3>NEXT</h3>
-<canvas id="next" width="120" height="120"></canvas>
-
-<h3>🏆 TOP</h3>
-<div id="board" class="small"></div>
-
-<button onclick="startGame()">START</button>
-<button onclick="togglePause()">PAUSE</button>
+<button onclick="startGame()">Start</button>
+<button onclick="togglePause()">Pause</button>
 </div>
 
-<!-- START -->
-<div id="start" class="overlay">
-TETRIS PRO
-<button onclick="startGame()">PLAY</button>
+<!-- MOBILE BUTTONS -->
+<div id="controls">
+<button onclick="left()">⬅</button>
+<button onclick="rotate()">🔄</button>
+<button onclick="right()">➡</button>
+<button onclick="down()">⬇</button>
+<button onclick="togglePause()">⏸</button>
 </div>
 
-<!-- PAUSE -->
-<div id="pauseScreen" class="overlay hidden">
-<div id="pause">ПАУЗА</div>
-</div>
-
-<!-- GAME OVER -->
-<div id="over" class="overlay hidden">
-GAME OVER
-<button onclick="startGame()">RESTART</button>
-</div>
+<!-- SCREENS -->
+<div id="start" class="overlay">TETRIS<button onclick="startGame()">PLAY</button></div>
+<div id="pause" class="overlay hidden">PAUSE</div>
+<div id="over" class="overlay hidden">GAME OVER<button onclick="startGame()">RESTART</button></div>
 
 </div>
 
 <script>
-
 const c=document.getElementById("game");
 const ctx=c.getContext("2d");
 
-const nc=document.getElementById("next");
-const nctx=nc.getContext("2d");
-
 const COLS=10, ROWS=20, SIZE=30;
 
-let grid,piece,next;
-let score=0,level=1;
+let grid,piece,score=0,level=1;
 let running=false,paused=false;
 
 const startScr=document.getElementById("start");
+const pauseScr=document.getElementById("pause");
 const overScr=document.getElementById("over");
-const pauseScr=document.getElementById("pauseScreen");
 
 const shapes=[
 [[1,1,1,1]],
@@ -148,44 +137,22 @@ const shapes=[
 
 const colors=["cyan","yellow","purple","orange","blue"];
 
-/* ===== РЕКОРДЫ ===== */
-let leaderboard=JSON.parse(localStorage.getItem("lb")||"[]");
-
-function saveScore(){
-leaderboard.push(score);
-leaderboard.sort((a,b)=>b-a);
-leaderboard=leaderboard.slice(0,5);
-localStorage.setItem("lb",JSON.stringify(leaderboard));
-drawBoard();
-}
-
-function drawBoard(){
-document.getElementById("board").innerHTML=
-leaderboard.map((s,i)=>`${i+1}. ${s}`).join("<br>");
-}
-
-/* ===== ФИГУРЫ ===== */
 function newPiece(){
 let i=Math.floor(Math.random()*shapes.length);
 return {
 shape:shapes[i],
 color:colors[i],
-x:3,y:0,
-type:i
+x:3,y:0
 };
 }
 
-/* ===== RESET ===== */
 function reset(){
 grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
 piece=newPiece();
-next=newPiece();
 score=0;
 level=1;
-updateUI();
 }
 
-/* ===== COLLISION ===== */
 function collide(px=piece.x,py=piece.y,shape=piece.shape){
 for(let y=0;y<shape.length;y++){
 for(let x=0;x<shape[y].length;x++){
@@ -199,18 +166,14 @@ if(ny>=0&&grid[ny][nx]) return true;
 return false;
 }
 
-/* ===== MERGE ===== */
 function merge(){
 piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
-if(v){
-grid[piece.y+y][piece.x+x]=piece.color;
-}
+if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 });
 }
 
-/* ===== CLEAR ===== */
 function clearLines(){
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
@@ -219,29 +182,15 @@ grid.unshift(Array(COLS).fill(0));
 score+=10;
 level=Math.floor(score/50)+1;
 y++;
-updateUI();
 }
 }
 }
 
-/* ===== UI ===== */
-function updateUI(){
-document.getElementById("score").innerText="Score: "+score;
-document.getElementById("level").innerText="Level: "+level;
-
-let best=localStorage.getItem("best")||0;
-if(score>best){
-localStorage.setItem("best",score);
-best=score;
-}
-}
-
-/* ===== DRAW GRID ===== */
-function drawBlock(x,y,color,ctx,size){
+function drawBlock(x,y,color){
 ctx.fillStyle=color;
-ctx.fillRect(x*size,y*size,size,size);
+ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
 ctx.strokeStyle="#111";
-ctx.strokeRect(x*size,y*size,size,size);
+ctx.strokeRect(x*SIZE,y*SIZE,SIZE,SIZE);
 }
 
 function draw(){
@@ -250,54 +199,43 @@ ctx.fillRect(0,0,300,600);
 
 grid.forEach((r,y)=>{
 r.forEach((v,x)=>{
-if(v) drawBlock(x,y,v,ctx,SIZE);
+if(v) drawBlock(x,y,v);
 });
 });
 
 piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
-if(v) drawBlock(piece.x+x,piece.y+y,piece.color,ctx,SIZE);
+if(v) drawBlock(piece.x+x,piece.y+y,piece.color);
 });
 });
 }
 
-/* ===== NEXT PIECE ===== */
-function drawNext(){
-nctx.fillStyle="#000";
-nctx.fillRect(0,0,120,120);
-
-next.shape.forEach((r,y)=>{
-r.forEach((v,x)=>{
-if(v){
-nctx.strokeStyle="#111";
-nctx.fillStyle=next.color;
-nctx.fillRect((x+1)*20,(y+1)*20,20,20);
-nctx.strokeRect((x+1)*20,(y+1)*20,20,20);
-}
-});
-});
-}
-
-/* ===== LOCK ===== */
 function lock(){
 merge();
 clearLines();
+piece=newPiece();
+if(collide()) gameOver();
+}
 
-piece=next;
-next=newPiece();
-
+function update(){
+if(!paused){
+piece.y++;
 if(collide()){
-gameOver();
+piece.y--;
+lock();
 }
+}
+draw();
+requestAnimationFrame(update);
 }
 
-/* ===== INPUT ===== */
+/* CONTROLS PC */
 document.addEventListener("keydown",e=>{
 if(!running||paused) return;
 
 if(e.key==="ArrowLeft"&&!collide(piece.x-1,piece.y)) piece.x--;
 if(e.key==="ArrowRight"&&!collide(piece.x+1,piece.y)) piece.x++;
-if(e.key==="ArrowDown"&&!collide(piece.x,piece.y+1)) piece.y++;
+if(e.key==="ArrowDown") piece.y++;
 
 if(e.key==="ArrowUp"){
 let rot=piece.shape[0].map((_,i)=>
@@ -309,38 +247,18 @@ if(!collide(piece.x,piece.y,rot)) piece.shape=rot;
 if(e.key==="p") togglePause();
 });
 
-/* ===== SPEED ===== */
-function speed(){
-return Math.max(80,600-(level-1)*50);
+/* MOBILE */
+function left(){if(!collide(piece.x-1,piece.y)) piece.x--;}
+function right(){if(!collide(piece.x+1,piece.y)) piece.x++;}
+function down(){if(!collide(piece.x,piece.y+1)) piece.y++;}
+function rotate(){
+let rot=piece.shape[0].map((_,i)=>
+piece.shape.map(r=>r[i]).reverse()
+);
+if(!collide(piece.x,piece.y,rot)) piece.shape=rot;
 }
 
-/* ===== LOOP ===== */
-let drop=0,last=0;
-
-function loop(time=0){
-if(!running) return;
-
-let delta=time-last;
-last=time;
-drop+=delta;
-
-if(!paused){
-if(drop>speed()){
-piece.y++;
-if(collide()){
-piece.y--;
-lock();
-}
-drop=0;
-}
-}
-
-draw();
-drawNext();
-requestAnimationFrame(loop);
-}
-
-/* ===== GAME STATES ===== */
+/* GAME STATE */
 function startGame(){
 startScr.classList.add("hidden");
 overScr.classList.add("hidden");
@@ -349,32 +267,22 @@ pauseScr.classList.add("hidden");
 reset();
 running=true;
 paused=false;
-saveScore();
-loop();
+update();
+}
+
+function togglePause(){
+if(!running) return;
+paused=!paused;
+pauseScr.classList.toggle("hidden",!paused);
 }
 
 function gameOver(){
 running=false;
 overScr.classList.remove("hidden");
-saveScore();
 }
 
-function togglePause(){
-if(!running) return;
-
-paused=!paused;
-
-if(paused){
-pauseScr.classList.remove("hidden");
-}else{
-pauseScr.classList.add("hidden");
-}
-}
-
-/* ===== INIT ===== */
 reset();
-drawBoard();
-
+update();
 </script>
 
 </body>
