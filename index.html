@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris FIX PRO</title>
+<title>Tetris Stable FIX</title>
 
 <style>
 body{
@@ -192,16 +192,21 @@ dropInterval=baseSpeed;
 updateUI();
 }
 
-/* FIX COLLISION */
+/* ===== FIXED COLLISION + STRICT BORDERS ===== */
 function collide(px=piece.x,py=piece.y,shape=piece.shape){
 for(let y=0;y<shape.length;y++){
 for(let x=0;x<shape[y].length;x++){
+
 if(shape[y][x]){
 let nx=px+x;
 let ny=py+y;
 
-if(nx<0||nx>=COLS||ny>=ROWS) return true;
-if(ny>=0 && grid[ny] && grid[ny][nx]) return true;
+/* ЖЁСТКИЕ ГРАНИЦЫ */
+if(nx < 0 || nx >= COLS) return true;
+if(ny >= ROWS) return true;
+
+/* проверка поля */
+if(ny >= 0 && grid[ny] && grid[ny][nx]) return true;
 }
 }
 }
@@ -225,7 +230,7 @@ grid.splice(y,1);
 grid.unshift(Array(COLS).fill(0));
 
 score+=10;
-level=Math.floor(score/80)+1;
+  level=Math.floor(score/80)+1;
 
 dropInterval=Math.max(250,baseSpeed-(level-1)*80);
 
@@ -233,7 +238,9 @@ y++;
 }
 }
 updateUI();
-}/* UI */
+}
+
+/* UI */
 function updateUI(){
 document.getElementById("score").innerText="Score: "+score;
 document.getElementById("level").innerText="Level: "+level;
@@ -300,12 +307,18 @@ draw();
 requestAnimationFrame(update);
 }
 
-/* CONTROLS */
+/* CONTROLS (FIXED BORDERS) */
 document.addEventListener("keydown",e=>{
 if(!running||paused) return;
 
-if(e.key==="ArrowLeft"&&!collide(piece.x-1,piece.y)) piece.x++;
-if(e.key==="ArrowRight"&&!collide(piece.x+1,piece.y)) piece.x--;
+if(e.key==="ArrowLeft"){
+if(!collide(piece.x-1,piece.y)) piece.x--;
+}
+
+if(e.key==="ArrowRight"){
+if(!collide(piece.x+1,piece.y)) piece.x++;
+}
+
 if(e.key==="ArrowDown") softDrop();
 
 if(e.key==="ArrowUp"){
@@ -316,7 +329,7 @@ if(!collide(piece.x,piece.y,rot)) piece.shape=rot;
 }
 });
 
-/* FIXED DOWN (ВАЖНО!) */
+/* SOFT DROP FIX */
 function softDrop(){
 piece.y++;
 
