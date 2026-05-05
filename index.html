@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris Fixed</title>
+<title>Tetris Pro + Leaderboard</title>
 
 <style>
 body{
@@ -31,7 +31,7 @@ image-rendering: pixelated;
 }
 
 #panel{
-width:200px;
+width:220px;
 background:#111;
 padding:10px;
 border-radius:10px;
@@ -64,7 +64,7 @@ z-index:10;
 
 .hidden{display:none}
 
-/* mobile controls */
+/* mobile */
 #controls{
 position:absolute;
 bottom:10px;
@@ -91,8 +91,12 @@ font-size:18px;
 
 <div id="panel">
 <h3>TETRIS FIX</h3>
+
 <p id="score">Score: 0</p>
 <p id="level">Level: 1</p>
+
+<h4>🏆 TOP</h4>
+<div id="board" style="font-size:12px;opacity:0.8"></div>
 
 <button onclick="startGame()">Start</button>
 <button onclick="togglePause()">Pause</button>
@@ -123,11 +127,13 @@ const COLS=10, ROWS=20, SIZE=30;
 
 let grid;
 let piece;
+
 let score=0,level=1;
 
 let running=false;
 let paused=false;
 
+/* screens */
 const startScr=document.getElementById("start");
 const pauseScr=document.getElementById("pause");
 const overScr=document.getElementById("over");
@@ -140,6 +146,24 @@ let dropInterval = baseSpeed;
 let dropCounter=0;
 let lastTime=0;
 
+/* leaderboard */
+let leaderboard = JSON.parse(localStorage.getItem("lb") || "[]");
+
+function saveScore(){
+leaderboard.push(score);
+leaderboard.sort((a,b)=>b-a);
+leaderboard = leaderboard.slice(0,5);
+localStorage.setItem("lb", JSON.stringify(leaderboard));
+drawBoard();
+}
+
+function drawBoard(){
+document.getElementById("board").innerHTML =
+leaderboard.length
+? leaderboard.map((s,i)=>`${i+1}. ${s}`).join("<br>")
+: "—";
+}
+
 /* shapes */
 const shapes=[
 [[1,1,1,1]],
@@ -151,7 +175,6 @@ const shapes=[
 
 const colors=["cyan","yellow","purple","orange","blue"];
 
-/* NEW PIECE */
 function newPiece(){
 let i=Math.floor(Math.random()*shapes.length);
 return{
@@ -161,28 +184,25 @@ x:3,y:0
 };
 }
 
-/* RESET */
+/* reset */
 function reset(){
 grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
 piece=newPiece();
 score=0;
 level=1;
 dropInterval=baseSpeed;
+updateUI();
 }
 
-/* 🔥 FIXED COLLISION (ГЛАВНОЕ ИСПРАВЛЕНИЕ) */
+/* FIXED COLLISION */
 function collide(px=piece.x,py=piece.y,shape=piece.shape){
 for(let y=0;y<shape.length;y++){
 for(let x=0;x<shape[y].length;x++){
-
 if(shape[y][x]){
 let nx=px+x;
 let ny=py+y;
 
-// границы
 if(nx<0||nx>=COLS||ny>=ROWS) return true;
-
-// защита от undefined + проверка поля
 if(ny>=0 && grid[ny] && grid[ny][nx]) return true;
 }
 }
@@ -190,7 +210,7 @@ if(ny>=0 && grid[ny] && grid[ny][nx]) return true;
 return false;
 }
 
-/* MERGE */
+/* merge */
 function merge(){
 piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
@@ -199,7 +219,7 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
-/* CLEAR */
+/* clear lines */
 function clearLines(){
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
@@ -223,7 +243,7 @@ document.getElementById("score").innerText="Score: "+score;
 document.getElementById("level").innerText="Level: "+level;
 }
 
-/* DRAW */
+/* draw */
 function drawBlock(x,y,color){
 ctx.fillStyle=color;
 ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
@@ -248,7 +268,7 @@ if(v) drawBlock(piece.x+x,piece.y+y,piece.color);
 });
 }
 
-/* LOCK */
+/* lock */
 function lock(){
 merge();
 clearLines();
@@ -258,7 +278,7 @@ piece=newPiece();
 if(collide()) gameOver();
 }
 
-/* LOOP (СТАБИЛЬНЫЙ) */
+/* loop */
 function update(time=0){
 if(!running) return;
 
@@ -284,7 +304,7 @@ draw();
 requestAnimationFrame(update);
 }
 
-/* CONTROLS */
+/* controls */
 document.addEventListener("keydown",e=>{
 if(!running||paused) return;
 
@@ -300,7 +320,7 @@ if(!collide(piece.x,piece.y,rot)) piece.shape=rot;
 }
 });
 
-/* MOBILE */
+/* mobile */
 function left(){if(!collide(piece.x-1,piece.y)) piece.x--;}
 function right(){if(!collide(piece.x+1,piece.y)) piece.x++;}
 function down(){if(!collide(piece.x,piece.y+1)) piece.y++;}
@@ -311,7 +331,7 @@ piece.shape.map(r=>r[i]).reverse()
 if(!collide(piece.x,piece.y,rot)) piece.shape=rot;
 }
 
-/* STATES */
+/* states */
 function startGame(){
 startScr.classList.add("hidden");
 overScr.classList.add("hidden");
@@ -324,6 +344,7 @@ paused=false;
 dropCounter=0;
 lastTime=0;
 
+drawBoard();
 update();
 }
 
@@ -336,10 +357,12 @@ pauseScr.classList.toggle("hidden",!paused);
 function gameOver(){
 running=false;
 overScr.classList.remove("hidden");
+saveScore();
 }
 
-/* START */
+/* init */
 reset();
+drawBoard();
 update();
 
 </script>
