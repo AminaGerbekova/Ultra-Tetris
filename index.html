@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris Mobile Pro</title>
+<title>Tetris Pro Mobile</title>
 
 <style>
 body{
@@ -90,7 +90,7 @@ font-size:18px;
 <canvas id="game" width="300" height="600"></canvas>
 
 <div id="panel">
-<h3>TETRIS</h3>
+<h3>TETRIS PRO</h3>
 <p id="score">Score: 0</p>
 <p id="level">Level: 1</p>
 
@@ -98,7 +98,7 @@ font-size:18px;
 <button onclick="togglePause()">Pause</button>
 </div>
 
-<!-- MOBILE BUTTONS -->
+<!-- MOBILE CONTROLS -->
 <div id="controls">
 <button onclick="left()">⬅</button>
 <button onclick="rotate()">🔄</button>
@@ -108,25 +108,39 @@ font-size:18px;
 </div>
 
 <!-- SCREENS -->
-<div id="start" class="overlay">TETRIS<button onclick="startGame()">PLAY</button></div>
+<div id="start" class="overlay">TETRIS PRO<button onclick="startGame()">PLAY</button></div>
 <div id="pause" class="overlay hidden">PAUSE</div>
 <div id="over" class="overlay hidden">GAME OVER<button onclick="startGame()">RESTART</button></div>
 
 </div>
 
 <script>
-const c=document.getElementById("game");
-const ctx=c.getContext("2d");
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 
 const COLS=10, ROWS=20, SIZE=30;
 
-let grid,piece,score=0,level=1;
-let running=false,paused=false;
+let grid,piece;
+let score=0,level=1;
 
+let running=false;
+let paused=false;
+
+/* screens */
 const startScr=document.getElementById("start");
 const pauseScr=document.getElementById("pause");
 const overScr=document.getElementById("over");
 
+/* mobile detection */
+const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+/* speed system */
+let dropCounter=0;
+let dropInterval=isMobile?900:500;
+let lastTime=0;
+
+/* shapes */
 const shapes=[
 [[1,1,1,1]],
 [[1,1],[1,1]],
@@ -137,15 +151,17 @@ const shapes=[
 
 const colors=["cyan","yellow","purple","orange","blue"];
 
+/* create piece */
 function newPiece(){
 let i=Math.floor(Math.random()*shapes.length);
-return {
+return{
 shape:shapes[i],
 color:colors[i],
 x:3,y:0
 };
 }
 
+/* reset */
 function reset(){
 grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
 piece=newPiece();
@@ -153,6 +169,7 @@ score=0;
 level=1;
 }
 
+/* collision */
 function collide(px=piece.x,py=piece.y,shape=piece.shape){
 for(let y=0;y<shape.length;y++){
 for(let x=0;x<shape[y].length;x++){
@@ -166,6 +183,7 @@ if(ny>=0&&grid[ny][nx]) return true;
 return false;
 }
 
+/* merge */
 function merge(){
 piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
@@ -174,6 +192,7 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
+/* clear lines */
 function clearLines(){
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
@@ -186,6 +205,7 @@ y++;
 }
 }
 
+/* draw */
 function drawBlock(x,y,color){
 ctx.fillStyle=color;
 ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
@@ -210,6 +230,7 @@ if(v) drawBlock(piece.x+x,piece.y+y,piece.color);
 });
 }
 
+/* lock */
 function lock(){
 merge();
 clearLines();
@@ -217,14 +238,27 @@ piece=newPiece();
 if(collide()) gameOver();
 }
 
-function update(){
+/* MAIN LOOP (FIXED PAUSE) */function update(time=0){
+if(!running) return;
+
+const delta=time-lastTime;
+lastTime=time;
+
 if(!paused){
+dropCounter+=delta;
+
+if(dropCounter>dropInterval){
 piece.y++;
+
 if(collide()){
 piece.y--;
 lock();
 }
+
+dropCounter=0;
 }
+}
+
 draw();
 requestAnimationFrame(update);
 }
@@ -243,8 +277,6 @@ piece.shape.map(r=>r[i]).reverse()
 );
 if(!collide(piece.x,piece.y,rot)) piece.shape=rot;
 }
-
-if(e.key==="p") togglePause();
 });
 
 /* MOBILE */
@@ -267,6 +299,10 @@ pauseScr.classList.add("hidden");
 reset();
 running=true;
 paused=false;
+
+dropCounter=0;
+lastTime=0;
+
 update();
 }
 
@@ -283,6 +319,7 @@ overScr.classList.remove("hidden");
 
 reset();
 update();
+
 </script>
 
 </body>
