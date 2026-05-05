@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris Pro Mobile</title>
+<title>Tetris Slow Pro</title>
 
 <style>
 body{
@@ -47,7 +47,7 @@ border:1px solid #444;
 border-radius:6px;
 }
 
-/* overlays */
+/* screens */
 .overlay{
 position:absolute;
 top:0;left:0;
@@ -90,7 +90,7 @@ font-size:18px;
 <canvas id="game" width="300" height="600"></canvas>
 
 <div id="panel">
-<h3>TETRIS PRO</h3>
+<h3>TETRIS SLOW</h3>
 <p id="score">Score: 0</p>
 <p id="level">Level: 1</p>
 
@@ -108,7 +108,7 @@ font-size:18px;
 </div>
 
 <!-- SCREENS -->
-<div id="start" class="overlay">TETRIS PRO<button onclick="startGame()">PLAY</button></div>
+<div id="start" class="overlay">TETRIS SLOW<button onclick="startGame()">PLAY</button></div>
 <div id="pause" class="overlay hidden">PAUSE</div>
 <div id="over" class="overlay hidden">GAME OVER<button onclick="startGame()">RESTART</button></div>
 
@@ -132,12 +132,14 @@ const startScr=document.getElementById("start");
 const pauseScr=document.getElementById("pause");
 const overScr=document.getElementById("over");
 
-/* mobile detection */
+/* MOBILE DETECT */
 const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-/* speed system */
+/* 🔥 СИЛЬНО ЗАМЕДЛИЛ */
+let baseSpeed = isMobile ? 1200 : 1600;
+let dropInterval = baseSpeed;
+
 let dropCounter=0;
-let dropInterval=isMobile?900:500;
 let lastTime=0;
 
 /* shapes */
@@ -151,7 +153,6 @@ const shapes=[
 
 const colors=["cyan","yellow","purple","orange","blue"];
 
-/* create piece */
 function newPiece(){
 let i=Math.floor(Math.random()*shapes.length);
 return{
@@ -161,12 +162,12 @@ x:3,y:0
 };
 }
 
-/* reset */
 function reset(){
 grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
 piece=newPiece();
 score=0;
 level=1;
+dropInterval=baseSpeed;
 }
 
 /* collision */
@@ -192,14 +193,19 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
-/* clear lines */
+/* lines */
 function clearLines(){
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
 grid.splice(y,1);
 grid.unshift(Array(COLS).fill(0));
 score+=10;
-level=Math.floor(score/50)+1;
+
+level=Math.floor(score/80)+1;
+
+/* 🔥 плавное ускорение */
+dropInterval=Math.max(300,baseSpeed-(level-1)*100);
+
 y++;
 }
 }
@@ -232,13 +238,13 @@ if(v) drawBlock(piece.x+x,piece.y+y,piece.color);
 
 /* lock */
 function lock(){
-merge();
-clearLines();
+merge();clearLines();
 piece=newPiece();
 if(collide()) gameOver();
 }
 
-/* MAIN LOOP (FIXED PAUSE) */function update(time=0){
+/* LOOP */
+function update(time=0){
 if(!running) return;
 
 const delta=time-lastTime;
@@ -263,7 +269,7 @@ draw();
 requestAnimationFrame(update);
 }
 
-/* CONTROLS PC */
+/* PC controls */
 document.addEventListener("keydown",e=>{
 if(!running||paused) return;
 
