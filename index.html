@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris PRO FINAL</title>
+<title>Tetris PRO FINAL FIX</title>
 
 <style>
 
@@ -100,11 +100,38 @@ font-size:22px;
 border-radius:12px;
 }
 
-/* DEV ONLY START */
+/* DEV BOX (ONLY START SCREEN) */
 #devBox{
 margin-top:15px;
 font-size:11px;
 opacity:0.8;
+}
+
+/* RESPONSIVE FIX */
+@media (max-width:768px){
+#wrap{
+flex-direction:column;
+align-items:center;
+gap:10px;
+}
+
+canvas{
+width:92vw;
+max-width:340px;
+height:auto;
+}
+
+#panel{
+width:92vw;
+max-width:340px;
+}
+
+#controls button{
+width:72px;
+height:72px;
+font-size:24px;
+}
+
 }
 
 </style>
@@ -144,7 +171,7 @@ opacity:0.8;
 <button onclick="softDrop()">⬇</button>
 </div>
 
-<!-- START SCREEN -->
+<!-- START -->
 <div id="start" class="overlay">
 
 <h1>TETRIS PRO</h1>
@@ -153,7 +180,7 @@ opacity:0.8;
 Разработчики:<br>
 Гербекова А.Я<br>
 Урусова А.М<br>
-Абайханова М.А-С
+Абайханова А.М-С
 </div>
 
 <button onclick="startGame()">PLAY</button>
@@ -174,7 +201,7 @@ opacity:0.8;
 
 <script>
 
-/* ===== CORE ===== */
+/* CORE */
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
@@ -190,8 +217,6 @@ let running=false,paused=false;
 let dropCounter=0,lastTime=0;
 let baseSpeed=900;
 
-let clearingRows=[];
-
 /* SHAPES */
 const shapes=[
 [[1,1,1,1]],
@@ -206,12 +231,7 @@ const colors=["cyan","yellow","purple","orange","blue"];
 /* CREATE */
 function create(){
 let i=Math.floor(Math.random()*shapes.length);
-return{
-shape:shapes[i],
-color:colors[i],
-x:3,
-y:0
-};
+return{shape:shapes[i],color:colors[i],x:3,y:0};
 }
 
 /* RESET */
@@ -249,37 +269,21 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
-/* CLEAR (ANIMATED + SMOOTH SPEED) */
+/* CLEAR */
 function clearLines(){
-
-clearingRows=[];
-
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
-clearingRows.push(y);
-}
-}
-
-if(clearingRows.length===0) return;
-
-setTimeout(()=>{
-
-for(let i=0;i<clearingRows.length;i++){
-grid.splice(clearingRows[i],1);
+grid.splice(y,1);
 grid.unshift(Array(COLS).fill(0));
+
+score+=10;
+level=Math.floor(score/50)+1;
+baseSpeed=Math.max(120,900-(level-1)*60);
+y++;
 }
-
-score += clearingRows.length * 10;
-level = 1 + Math.floor(score / 50);
-
-/* SMOOTH SPEED */
-baseSpeed = Math.max(120, 900 * Math.pow(0.88, level - 1));
-
+}
 updateUI();
 saveScore();
-clearingRows=[];
-
-},120);
 }
 
 /* SCORE */
@@ -306,19 +310,22 @@ document.getElementById("score").innerText="Score: "+score;
 document.getElementById("level").innerText="Level: "+level;
 }
 
-/* GRID */
+/* ===== FIXED GRID LINES (VISIBLE ON PC) ===== */
 function drawGrid(){
-ctx.strokeStyle="rgba(255,255,255,0.08)";
+ctx.strokeStyle="rgba(255,255,255,0.12)";
+ctx.lineWidth=1;
+
 for(let x=0;x<=COLS;x++){
 ctx.beginPath();
-ctx.moveTo(x*SIZE,0);
-ctx.lineTo(x*SIZE,600);
+ctx.moveTo(x*SIZE+0.5,0);
+ctx.lineTo(x*SIZE+0.5,600);
 ctx.stroke();
 }
+
 for(let y=0;y<=ROWS;y++){
 ctx.beginPath();
-ctx.moveTo(0,y*SIZE);
-ctx.lineTo(300,y*SIZE);
+ctx.moveTo(0,y*SIZE+0.5);
+ctx.lineTo(300,y*SIZE+0.5);
 ctx.stroke();
 }
 }
@@ -330,26 +337,15 @@ ctx.fillRect(0,0,300,600);
 
 drawGrid();
 
-/* blocks */
 grid.forEach((r,y)=>{
 r.forEach((v,x)=>{
-
 if(v){
-
-let blink = clearingRows.includes(y);
-
-ctx.globalAlpha = blink ? 0.3 : 1;
-
 ctx.fillStyle=v;
 ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
-
-ctx.globalAlpha = 1;
 }
-
 });
 });
 
-/* piece */
 piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
 if(v){
@@ -399,7 +395,6 @@ lastTime=t;
 
 if(!paused){
 dropCounter+=delta;
-
 if(dropCounter>baseSpeed){
 piece.y++;
 if(collide()){piece.y--;lock();}
@@ -423,6 +418,7 @@ if(!collide(piece.x,piece.y,r)) piece.shape=r;
 /* KEYBOARD */
 document.addEventListener("keydown",e=>{
 if(!running) return;
+
 if(e.key==="p") togglePause();
 if(paused) return;
 
