@@ -1,10 +1,9 @@
-> aminat’k:
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris PRO FIX</title>
+<title>Tetris STABLE</title>
 
 <style>
 
@@ -50,6 +49,7 @@ border:1px solid #444;
 border-radius:6px;
 cursor:pointer;
 }
+
 button:hover{background:#333}
 
 #next{
@@ -58,12 +58,11 @@ border:2px solid #333;
 margin-top:8px;
 }
 
+/* OVERLAYS */
 .overlay{
 position:absolute;
-top:0;
-left:0;
-width:100%;
-height:100%;
+top:0;left:0;
+width:100%;height:100%;
 background:rgba(0,0,0,0.6);
 backdrop-filter: blur(6px);
 display:flex;
@@ -76,7 +75,7 @@ text-align:center;
 
 .hidden{display:none}
 
-/* MOBILE CONTROLS */
+/* CONTROLS */
 #controls{
 position:fixed;
 bottom:10px;
@@ -92,27 +91,22 @@ height:60px;
 font-size:22px;
 }
 
-/* 👇 DEV BOX FIXED */
+/* DEV */
 #devs{
-position:fixed;
+position:absolute;
 right:10px;
-bottom:80px;   /* 👈 ПОДНЯЛ ВЫШЕ */
+bottom:10px;
 font-size:10px;
-background:rgba(0,0,0,0.65);
-padding:8px 10px;
+background:rgba(0,0,0,0.6);
+padding:8px;
 border-radius:8px;
 border:1px solid #333;
-line-height:1.2;
-text-align:right;
-opacity:0.9;
 }
 
-/* RESPONSIVE */
 @media (max-width:900px){
 #wrap{flex-direction:column;align-items:center;}
 canvas{width:90vw;max-width:320px;height:auto;}
 #panel{width:90vw;}
-#devs{bottom:100px;font-size:9px;}
 }
 
 </style>
@@ -125,7 +119,8 @@ canvas{width:90vw;max-width:320px;height:auto;}
 <canvas id="game" width="300" height="600"></canvas>
 
 <div id="panel">
-<h2>TETRIS PRO</h2>
+
+<h2>TETRIS</h2>
 
 <p id="score">Score: 0</p>
 <p id="level">Level: 1</p>
@@ -133,16 +128,15 @@ canvas{width:90vw;max-width:320px;height:auto;}
 <p>Next:</p>
 <canvas id="next" width="120" height="120"></canvas>
 
-<h4>🏆 Рекорды</h4>
 <div id="board" style="font-size:12px;opacity:0.8"></div>
 
 <button onclick="startGame()">Start</button>
 <button onclick="togglePause()">Pause</button>
-</div>
 
 </div>
 
-<!-- CONTROLS -->
+</div>
+
 <div id="controls">
 <button onclick="left()">⬅</button>
 <button onclick="rotate()">🔄</button>
@@ -150,12 +144,31 @@ canvas{width:90vw;max-width:320px;height:auto;}
 <button onclick="softDrop()">⬇</button>
 </div>
 
-<!-- DEV BOX -->
-<div id="devs">
-Разработчики:<br>
+<!-- START -->
+<div id="start" class="overlay">
+
+<h1>TETRIS</h1>
+
+<p>Разработчики:</p>
+<div style="font-size:12px">
 Гербекова А.Я<br>
 Урусова А.М<br>
 Абайханова М.А-С
+</div>
+
+<button onclick="startGame()">PLAY</button>
+</div>
+
+<!-- PAUSE -->
+<div id="pause" class="overlay hidden">
+<h1>PAUSED</h1>
+<button onclick="togglePause()">CONTINUE</button>
+</div>
+
+<!-- GAME OVER -->
+<div id="over" class="overlay hidden">
+<h1>GAME OVER</h1>
+<button onclick="startGame()">RESTART</button>
 </div>
 
 <script>
@@ -163,11 +176,15 @@ canvas{width:90vw;max-width:320px;height:auto;}
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
+const next=document.getElementById("next");
+const nctx=next.getContext("2d");
+
 const COLS=10,ROWS=20,SIZE=30;
 
 let grid,piece,nextPiece;
 let score=0,level=1;
 let running=false,paused=false;
+
 let dropCounter=0,lastTime=0;
 let baseSpeed=900;
 
@@ -230,24 +247,43 @@ y++;
 }
 }
 updateUI();
+saveScore();
 }
 
-/* 👇 GRID LINES FIXED (CLEAR & CLASSIC LOOK) */
-function drawGrid(){
-ctx.strokeStyle="rgba(255,255,255,0.06)";
-ctx.lineWidth=1;
+/* SCORE */
+let leaderboard=JSON.parse(localStorage.getItem("lb")||"[]");
 
+function saveScore(){
+leaderboard.push(score);
+leaderboard.sort((a,b)=>b-a);
+leaderboard=leaderboard.slice(0,5);
+localStorage.setItem("lb",JSON.stringify(leaderboard));
+drawBoard();
+}
+
+function drawBoard(){
+document.getElementById("board").innerHTML=
+leaderboard.length?
+leaderboard.map((s,i)=>`${i+1}. ${s}`).join("<br>")
+:"—";
+}
+
+function updateUI(){
+document.getElementById("score").innerText="Score: "+score;
+document.getElementById("level").innerText="Level: "+level;
+}
+
+/* GRID */
+function drawGrid(){
+ctx.strokeStyle="rgba(255,255,255,0.08)";
 for(let x=0;x<=COLS;x++){
 ctx.beginPath();
 ctx.moveTo(x*SIZE,0);
 ctx.lineTo(x*SIZE,600);
 ctx.stroke();
 }
-
 for(let y=0;y<=ROWS;y++){
 ctx.beginPath();
-
-> aminat’k:
 ctx.moveTo(0,y*SIZE);
 ctx.lineTo(300,y*SIZE);
 ctx.stroke();
@@ -279,11 +315,37 @@ ctx.fillRect((piece.x+x)*SIZE,(piece.y+y)*SIZE,SIZE,SIZE);
 });
 }
 
-function updateUI(){
-document.getElementById("score").innerText="Score: "+score;
-document.getElementById("level").innerText="Level: "+level;
+/* NEXT */
+function drawNext(){
+nctx.fillStyle="#000";
+nctx.fillRect(0,0,120,120);
+
+nextPiece.shape.forEach((r,y)=>{
+r.forEach((v,x)=>{
+if(v){
+nctx.fillStyle=nextPiece.color;
+nctx.fillRect(x*25+20,y*25+20,25,25);
+}
+});
+});
 }
 
+/* LOCK */
+function lock(){
+merge();
+clearLines();
+
+piece=nextPiece;
+piece.x=3;
+piece.y=0;
+
+nextPiece=create();
+drawNext();
+
+if(collide()) gameOver();
+}
+
+/* LOOP */
 function update(t=0){
 if(!running) return;
 
@@ -303,20 +365,7 @@ draw();
 requestAnimationFrame(update);
 }
 
-function lock(){
-merge();
-clearLines();
-
-piece=nextPiece;
-piece.x=3;
-piece.y=0;
-
-nextPiece=create();
-drawNext();
-
-if(collide()) gameOver();
-}
-
+/* CONTROLS */
 function left(){if(!paused&&!collide(piece.x-1,piece.y))piece.x--;}
 function right(){if(!paused&&!collide(piece.x+1,piece.y))piece.x++;}
 function softDrop(){if(!paused){piece.y++;if(collide()){piece.y--;lock();}}}
@@ -325,6 +374,7 @@ let r=piece.shape[0].map((_,i)=>piece.shape.map(x=>x[i]).reverse());
 if(!collide(piece.x,piece.y,r)) piece.shape=r;
 }
 
+/* STATES */
 function startGame(){
 document.getElementById("start").classList.add("hidden");
 document.getElementById("pause").classList.add("hidden");
@@ -335,6 +385,9 @@ running=true;
 paused=false;
 dropCounter=0;
 lastTime=0;
+
+drawBoard();
+drawNext();
 update();
 }
 
@@ -347,11 +400,14 @@ document.getElementById("pause").classList.toggle("hidden",!paused);
 function gameOver(){
 running=false;
 document.getElementById("over").classList.remove("hidden");
+saveScore();
 }
 
-function drawNext(){}
-
+/* INIT */
 reset();
+drawBoard();
+drawNext();
+
 </script>
 
 </body>
