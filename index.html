@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris PRO SAFE</title>
+<title>Tetris PRO BEAUTY</title>
 
 <style>
 
 body{
 margin:0;
-background:linear-gradient(135deg,#0a0a0a,#111);
+background: radial-gradient(circle at top, #1a1a1a, #000);
 display:flex;
 justify-content:center;
 align-items:center;
@@ -19,6 +19,7 @@ color:white;
 overflow:hidden;
 }
 
+/* MAIN WRAP */
 #wrap{
 display:flex;
 gap:15px;
@@ -26,51 +27,69 @@ align-items:flex-start;
 position:relative;
 }
 
+/* CANVAS */
 canvas{
 background:#000;
-border:2px solid #333;
+border:2px solid rgba(255,255,255,0.15);
 image-rendering:pixelated;
+box-shadow: 0 0 20px rgba(0,0,0,0.6);
 }
 
+/* PANEL */
 #panel{
 width:240px;
-background:#111;
+background:rgba(20,20,20,0.85);
+backdrop-filter: blur(8px);
 padding:12px;
-border-radius:10px;
+border-radius:12px;
+border:1px solid rgba(255,255,255,0.08);
 }
 
+h2{
+text-align:center;
+margin:5px 0;
+}
+
+/* BUTTONS */
 button{
 width:100%;
 margin-top:8px;
 padding:10px;
-background:#222;
+background:rgba(255,255,255,0.08);
 color:white;
-border:1px solid #444;
-border-radius:6px;
+border:1px solid rgba(255,255,255,0.15);
+border-radius:8px;
 cursor:pointer;
+transition:0.2s;
 }
 
-button:hover{background:#333}
+button:hover{
+background:rgba(255,255,255,0.18);
+}
 
+/* NEXT */
 #next{
 background:#000;
-border:2px solid #333;
+border:1px solid rgba(255,255,255,0.15);
 margin-top:8px;
 }
 
+/* GLASS OVERLAY */
 .overlay{
 position:absolute;
 top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.7);
+background:rgba(0,0,0,0.65);   /* 👈 ПРОЗРАЧНОСТЬ */
+backdrop-filter: blur(8px);     /* 👈 GLASS EFFECT */
 display:flex;
 flex-direction:column;
 justify-content:center;
 align-items:center;
 z-index:50;
 text-align:center;
+padding:20px;
 }
 
 .hidden{display:none}
@@ -86,21 +105,29 @@ gap:10px;
 }
 
 #controls button{
-width:65px;
-height:65px;
+width:70px;
+height:70px;
 font-size:22px;
+border-radius:12px;
 }
 
-/* DEV (BOTTOM RIGHT ABOVE EDGE) */
+/* DEV BLOCK (ONLY START) */
+#devBox{
+margin-top:15px;
+font-size:11px;
+opacity:0.8;
+}
+
+/* SMALL DEV BOX (INGAME) */
 #devs{
 position:fixed;
 right:10px;
-bottom:80px;
+bottom:90px;
 font-size:10px;
-background:rgba(0,0,0,0.6);
+background:rgba(0,0,0,0.5);
 padding:6px 10px;
 border-radius:8px;
-border:1px solid #333;
+border:1px solid rgba(255,255,255,0.1);
 line-height:1.2;
 text-align:right;
 }
@@ -108,9 +135,9 @@ text-align:right;
 /* RESPONSIVE */
 @media (max-width:900px){
 #wrap{flex-direction:column;align-items:center;}
-canvas{width:90vw;max-width:320px;height:auto;}
+canvas{width:90vw;max-width:320px;}
 #panel{width:90vw;}
-#devs{bottom:100px;}
+#devs{bottom:110px;}
 }
 
 </style>
@@ -150,13 +177,13 @@ canvas{width:90vw;max-width:320px;height:auto;}
 <button onclick="softDrop()">⬇</button>
 </div>
 
-<!-- START -->
+<!-- START SCREEN (WITH DEVELOPERS) -->
 <div id="start" class="overlay">
 
 <h1>TETRIS PRO</h1>
 
-<p>Разработчики:</p>
-<div style="font-size:12px">
+<div id="devBox">
+Разработчики:<br>
 Гербекова А.Я<br>
 Урусова А.М<br>
 Абайханова М.А-С
@@ -178,7 +205,7 @@ canvas{width:90vw;max-width:320px;height:auto;}
 <button onclick="startGame()">RESTART</button>
 </div>
 
-<!-- DEV SMALL BOX -->
+<!-- SMALL DEV BOX (INGAME) -->
 <div id="devs">
 Разработчики:<br>
 Гербекова А.Я<br>
@@ -188,23 +215,20 @@ canvas{width:90vw;max-width:320px;height:auto;}
 
 <script>
 
+/* === CORE === */
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
-const nextCanvas=document.getElementById("next");
-const nctx=nextCanvas.getContext("2d");
+const next=document.getElementById("next");
+const nctx=next.getContext("2d");
 
 const COLS=10,ROWS=20,SIZE=30;
 
 let grid,piece,nextPiece;
+let score=0,level=1;
+let running=false,paused=false;
 
-let score=0;
-let level=1;
-let running=false;
-let paused=false;
-
-let dropCounter=0;
-let lastTime=0;
+let dropCounter=0,lastTime=0;
 let baseSpeed=900;
 
 /* SHAPES */
@@ -218,15 +242,11 @@ const shapes=[
 
 const colors=["cyan","yellow","purple","orange","blue"];
 
-/* CREATE PIECE */
+/* CREATE */
 function create(){
-let i=Math.floor(Math.random()*shapes.length);
-return{
-shape:shapes[i],
-color:colors[i],
-x:3,
-y:0
-};
+let i=Math.floor(Math.
+random()*shapes.length);
+return{shape:shapes[i],color:colors[i],x:3,y:0};
 }
 
 /* RESET */
@@ -264,7 +284,7 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
-/* CLEAR LINES */
+/* CLEAR */
 function clearLines(){
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
@@ -287,7 +307,7 @@ let leaderboard=JSON.parse(localStorage.getItem("lb")||"[]");
 
 function saveScore(){
 leaderboard.push(score);
-leaderboard.sort((a,b)=>b-score);
+leaderboard.sort((a,b)=>b-a);
 leaderboard=leaderboard.slice(0,5);
 localStorage.setItem("lb",JSON.stringify(leaderboard));
 drawBoard();
@@ -306,9 +326,9 @@ document.getElementById("score").innerText="Score: "+score;
 document.getElementById("level").innerText="Level: "+level;
 }
 
-/* GRID LINES */
+/* GRID BEAUTY */
 function drawGrid(){
-ctx.strokeStyle="rgba(255,255,255,0.08)";
+ctx.strokeStyle="rgba(255,255,255,0.06)";
 for(let x=0;x<=COLS;x++){
 ctx.beginPath();
 ctx.moveTo(x*SIZE,0);
@@ -411,7 +431,6 @@ if(!collide(piece.x,piece.y,r)) piece.shape=r;
 /* KEYBOARD */
 document.addEventListener("keydown",e=>{
 if(!running) return;
-
 if(e.key==="p") togglePause();
 if(paused) return;
 
@@ -456,6 +475,5 @@ drawBoard();
 drawNext();
 
 </script>
-
 </body>
 </html>
