@@ -1,9 +1,10 @@
+> aminat’k:
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris Stable FIX</title>
+<title>Tetris Ultimate FIX</title>
 
 <style>
 
@@ -55,6 +56,7 @@ color:white;
 border:1px solid #444;
 border-radius:6px;
 cursor:pointer;
+transition:0.2s;
 }
 
 button:hover{
@@ -67,21 +69,29 @@ top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.9);
+background:rgba(0,0,0,0.92);
 display:flex;
 align-items:center;
 justify-content:center;
 flex-direction:column;
 font-size:28px;
-z-index:10;
+z-index:50;
 text-align:center;
+padding:20px;
+box-sizing:border-box;
 }
 
 .hidden{
 display:none;
 }
 
-/* MOBILE CONTROLS */
+#nextCanvas{
+background:#000;
+border:2px solid #444;
+margin-top:10px;
+}
+
+/* CONTROLS */
 
 #controls{
 position:fixed;
@@ -96,37 +106,19 @@ justify-content:center;
 }
 
 #controls button{
-width:55px;
-height:55px;
-font-size:18px;
+width:60px;
+height:60px;
+font-size:22px;
 padding:0;
 }
 
-/* DEVELOPERS */
-
-#devs{
-position:absolute;
-top:-70px;
-left:50%;
-transform:translateX(-50%);
-background:rgba(0,0,0,0.8);
-padding:10px 15px;
-border-radius:10px;
-font-size:14px;
-text-align:center;
-z-index:30;
-border:1px solid #444;
-max-width:90%;
-line-height:1.5;
-}
-
-/* ===== ADAPTIVE ===== */
+/* ADAPTIVE */
 
 @media (max-width:900px){
 
 body{
 align-items:flex-start;
-padding-top:90px;
+padding-top:20px;
 padding-bottom:100px;
 }
 
@@ -151,28 +143,12 @@ text-align:center;
 bottom:15px;
 }
 
-#controls button{
-width:60px;
-height:60px;
-font-size:22px;
-}
-
-#devs{
-top:-80px;
-font-size:13px;
-width:90%;
-}
 }
 
 @media (max-width:480px){
 
-h3{
-font-size:20px;
-}
-
-#panel{
-font-size:14px;
-padding:8px;
+.overlay{
+font-size:22px;
 }
 
 #controls button{
@@ -181,15 +157,6 @@ height:55px;
 font-size:20px;
 }
 
-.overlay{
-font-size:22px;
-padding:20px;
-}
-
-#devs{
-font-size:12px;
-padding:8px 10px;
-}
 }
 
 </style>
@@ -199,33 +166,30 @@ padding:8px 10px;
 
 <div id="wrap">
 
-<!-- DEVELOPERS -->
-<div id="devs">
-Разработчики:<br>
-Гербекова А.Я.<br>
-Урусова А.М.<br>
-Абайханова М. А.-С.
-</div>
-
 <canvas id="game" width="300" height="600"></canvas>
 
 <div id="panel">
 
-<h3>TETRIS FIX</h3>
+<h2>TETRIS</h2>
 
 <p id="score">Score: 0</p>
 <p id="level">Level: 1</p>
+
+<h3>Следующая фигура</h3>
+
+<canvas id="nextCanvas" width="120" height="120"></canvas>
 
 <h4>🏆 TOP</h4>
 
 <div id="board" style="font-size:12px;opacity:0.8"></div>
 
 <button onclick="startGame()">Start</button>
-<button onclick="togglePause()">Pause</button>
+
+<button onclick="togglePause()">Pause / Resume</button>
 
 </div>
 
-<!-- MOBILE -->
+<!-- MOBILE CONTROLS -->
 
 <div id="controls">
 
@@ -237,20 +201,49 @@ padding:8px 10px;
 
 </div>
 
-<!-- SCREENS -->
+<!-- START SCREEN -->
 
 <div id="start" class="overlay">
-TETRIS
-<button onclick="startGame()">PLAY</button>
+
+<h1>TETRIS</h1>
+
+<p style="font-size:16px;line-height:1.6;max-width:400px;">
+
+Разработчики:<br>
+Гербекова А.Я.<br>
+Урусова А.М.<br>
+Абайханова М. А.-С.
+
+</p>
+
+<button onclick="startGame()" style="max-width:200px;">
+PLAY
+</button>
+
 </div>
+
+<!-- PAUSE -->
 
 <div id="pause" class="overlay hidden">
+
 PAUSED
+
+<button onclick="togglePause()" style="max-width:200px;">
+CONTINUE
+</button>
+
 </div>
 
+<!-- GAME OVER -->
+
 <div id="over" class="overlay hidden">
+
 GAME OVER
-<button onclick="startGame()">RESTART</button>
+
+<button onclick="startGame()" style="max-width:200px;">
+RESTART
+</button>
+
 </div>
 
 </div>
@@ -260,12 +253,17 @@ GAME OVER
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+const nextCanvas = document.getElementById("nextCanvas");
+const nextCtx = nextCanvas.getContext("2d");
+
 const COLS = 10;
 const ROWS = 20;
 const SIZE = 30;
 
 let grid;
+
 let piece;
+let nextPiece;
 
 let score = 0;
 let level = 1;
@@ -277,25 +275,31 @@ const startScr = document.getElementById("start");
 const pauseScr = document.getElementById("pause");
 const overScr = document.getElementById("over");
 
-/* speed */
+/* SPEED */
 
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 let baseSpeed = isMobile ? 1100 : 1400;
+
 let dropInterval = baseSpeed;
 
 let dropCounter = 0;
 let lastTime = 0;
 
-/* leaderboard */
+/* LEADERBOARD */
 
 let leaderboard = JSON.parse(localStorage.getItem("lb") || "[]");
 
 function saveScore(){
 
-leaderboard.push(score);
+leaderboard.
 
-leaderboard.sort((a,b)=>b-a);leaderboard = leaderboard.slice(0,5);
+> aminat’k:
+push(score);
+
+leaderboard.sort((a,b)=>b-a);
+
+leaderboard = leaderboard.slice(0,5);
 
 localStorage.setItem("lb", JSON.stringify(leaderboard));
 
@@ -313,7 +317,7 @@ leaderboard.length
 
 }
 
-/* shapes */
+/* SHAPES */
 
 const shapes = [
 
@@ -341,7 +345,7 @@ const colors = [
 "blue"
 ];
 
-function newPiece(){
+function createPiece(){
 
 let i = Math.floor(Math.random()*shapes.length);
 
@@ -354,7 +358,7 @@ y: 0
 
 }
 
-/* reset */
+/* RESET */
 
 function reset(){
 
@@ -363,18 +367,58 @@ grid = Array.from(
 ()=>Array(COLS).fill(0)
 );
 
-piece = newPiece();
-
 score = 0;
 level = 1;
 
 dropInterval = baseSpeed;
 
+piece = createPiece();
+nextPiece = createPiece();
+
 updateUI();
 
 }
 
-/* collision */
+/* NEXT FIGURE */
+
+function drawNext(){
+
+nextCtx.fillStyle = "#000";
+nextCtx.fillRect(0,0,120,120);
+
+nextPiece.shape.forEach((row,y)=>{
+
+row.forEach((v,x)=>{
+
+if(v){
+
+nextCtx.fillStyle = nextPiece.color;
+
+nextCtx.fillRect(
+x*25 + 20,
+y*25 + 20,
+25,
+25
+);
+
+nextCtx.strokeStyle = "#111";
+
+nextCtx.strokeRect(
+x*25 + 20,
+y*25 + 20,
+25,
+25
+);
+
+}
+
+});
+
+});
+
+}
+
+/* COLLISION */
 
 function collide(px = piece.x, py = piece.y, shape = piece.shape){
 
@@ -403,7 +447,7 @@ return false;
 
 }
 
-/* merge */
+/* MERGE */
 
 function merge(){
 
@@ -412,7 +456,9 @@ piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
 
 if(v){
+
 grid[piece.y+y][piece.x+x] = piece.color;
+
 }
 
 });
@@ -421,7 +467,7 @@ grid[piece.y+y][piece.x+x] = piece.color;
 
 }
 
-/* clear lines */
+/* LINES */
 
 function clearLines(){
 
@@ -439,7 +485,7 @@ level = Math.floor(score/80)+1;
 
 dropInterval = Math.max(
 250,
-baseSpeed - (level-1)*80
+baseSpeed-(level-1)*80
 );
 
 y++;
@@ -464,7 +510,7 @@ document.getElementById("level").innerText =
 
 }
 
-/* draw */
+/* DRAW */
 
 function drawBlock(x,y,color){
 
@@ -511,11 +557,13 @@ piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
 
 if(v){
+
 drawBlock(
 piece.x+x,
 piece.y+y,
 piece.color
 );
+
 }
 
 });
@@ -524,7 +572,7 @@ piece.color
 
 }
 
-/* lock */
+/* LOCK */
 
 function lock(){
 
@@ -532,10 +580,19 @@ merge();
 
 clearLines();
 
-piece = newPiece();
+piece = nextPiece;
+
+piece.x = 3;
+piece.y = 0;
+
+nextPiece = createPiece();
+
+drawNext();
 
 if(collide()){
+
 gameOver();
+
 }
 
 }
@@ -582,7 +639,13 @@ requestAnimationFrame(update);
 
 document.addEventListener("keydown",e=>{
 
-if(!running || paused) return;
+if(!running) return;
+
+if(e.key === "p"){
+togglePause();
+}
+
+if(paused) return;
 
 if(e.key === "ArrowLeft"){
 
@@ -618,9 +681,31 @@ piece.shape = rot;
 
 });
 
-/* SOFT DROP */
+/* MOBILE */
+
+function left(){
+
+if(paused) return;
+
+if(!collide(piece.x-1,piece.y)){
+piece.x--;
+}
+
+}
+
+function right(){
+
+if(paused) return;
+
+if(!collide(piece.x+1,piece.y)){
+piece.x++;
+}
+
+}
 
 function softDrop(){
+
+if(paused) return;
 
 piece.y++;
 
@@ -634,25 +719,9 @@ lock();
 
 }
 
-/* MOBILE */
-
-function left(){
-
-if(!collide(piece.x-1,piece.y)){
-piece.x--;
-}
-
-}
-
-function right(){
-
-if(!collide(piece.x+1,piece.y)){
-piece.x++;
-}
-
-}
-
 function rotate(){
+
+if(paused) return;
 
 let rot = piece.shape[0].map((_,i)=>
 piece.shape.map(r=>r[i]).reverse()
@@ -666,21 +735,28 @@ piece.shape = rot;
 
 /* STATES */
 
+> aminat’k:
 function startGame(){
 
 startScr.classList.add("hidden");
+
 overScr.classList.add("hidden");
+
 pauseScr.classList.add("hidden");
 
 reset();
 
 running = true;
+
 paused = false;
 
 dropCounter = 0;
+
 lastTime = 0;
 
 drawBoard();
+
+drawNext();
 
 update();
 
@@ -706,13 +782,15 @@ saveScore();
 
 }
 
-/* init */
+/* INIT */
 
 reset();
 
 drawBoard();
 
-update();
+drawNext();
+
+draw();
 
 </script>
 
