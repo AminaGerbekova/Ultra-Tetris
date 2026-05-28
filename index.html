@@ -1,10 +1,9 @@
-> aminat’k:
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris PRO ULTRA</title>
+<title>Tetris PRO FIXED</title>
 
 <style>
 
@@ -20,7 +19,7 @@ color:white;
 overflow:hidden;
 }
 
-/* LAYOUT */
+/* WRAP */
 #wrap{
 display:flex;
 gap:15px;
@@ -28,7 +27,7 @@ align-items:flex-start;
 position:relative;
 }
 
-/* CANVAS */
+/* GAME */
 canvas{
 background:#000;
 border:2px solid #333;
@@ -63,14 +62,14 @@ border:2px solid #333;
 margin-top:8px;
 }
 
-/* OVERLAY (glass effect) */
+/* OVERLAY (glass) */
 .overlay{
 position:absolute;
 top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.65);
+background:rgba(0,0,0,0.6);
 backdrop-filter: blur(6px);
 display:flex;
 flex-direction:column;
@@ -78,17 +77,9 @@ justify-content:center;
 align-items:center;
 z-index:50;
 text-align:center;
-padding:20px;
-transition:0.3s;
 }
 
 .hidden{display:none}
-
-/* DIFFICULTY */
-.diffBtn{
-width:160px;
-margin:5px;
-}
 
 /* CONTROLS */
 #controls{
@@ -106,14 +97,19 @@ height:60px;
 font-size:22px;
 }
 
-/* LINE ANIMATION */
-.flash{
-animation: flash 0.25s linear 3;
-}
-
-@keyframes flash{
-0%{background:white}
-100%{background:black}
+/* DEVELOPERS (BOTTOM RIGHT SMALL) */
+#devs{
+position:fixed;
+right:10px;
+bottom:10px;
+background:rgba(0,0,0,0.6);
+padding:6px 10px;
+border-radius:8px;
+font-size:10px;
+line-height:1.2;
+border:1px solid #333;
+opacity:0.9;
+pointer-events:none;
 }
 
 /* RESPONSIVE */
@@ -121,6 +117,7 @@ animation: flash 0.25s linear 3;
 #wrap{flex-direction:column;align-items:center;}
 canvas{width:90vw;max-width:320px;height:auto;}
 #panel{width:90vw;}
+#devs{font-size:9px;}
 }
 
 </style>
@@ -160,25 +157,16 @@ canvas{width:90vw;max-width:320px;height:auto;}
 <button onclick="softDrop()">⬇</button>
 </div>
 
-<!-- START + DIFFICULTY -->
+<!-- START -->
 <div id="start" class="overlay">
-
 <h1>TETRIS PRO</h1>
 
-<p>Выбери сложность</p>
-
-<button class="diffBtn" onclick="setDiff(1100)">Легко</button>
-<button class="diffBtn" onclick="setDiff(800)">Нормально</button>
-<button class="diffBtn" onclick="setDiff(500)">Сложно</button>
-
-<p style="margin-top:10px;font-size:13px;opacity:0.8">
-Гербекова А.Я<br>
-Урусова А.М<br>
-Абайханова М. А.-С.
-</p>
+<p>Сложность</p>
+<button onclick="setSpeed(1100)">Easy</button>
+<button onclick="setSpeed(800)">Normal</button>
+<button onclick="setSpeed(500)">Hard</button>
 
 <button onclick="startGame()">PLAY</button>
-
 </div>
 
 <!-- PAUSE -->
@@ -193,6 +181,14 @@ canvas{width:90vw;max-width:320px;height:auto;}
 <button onclick="startGame()">RESTART</button>
 </div>
 
+<!-- DEVELOPERS -->
+<div id="devs">
+Разработчики:<br>
+Гербекова А.Я<br>
+Урусова А.М<br>
+Абайханова М.А-С
+</div>
+
 <script>
 
 const canvas=document.getElementById("game");
@@ -201,7 +197,7 @@ const ctx=canvas.getContext("2d");
 const nextCanvas=document.getElementById("next");
 const nctx=nextCanvas.getContext("2d");
 
-const COLS=10, ROWS=20, SIZE=30;
+const COLS=10,ROWS=20,SIZE=30;
 
 let grid,piece,nextPiece;
 
@@ -211,10 +207,8 @@ let running=false,paused=false;
 let dropCounter=0,lastTime=0;
 let baseSpeed=900;
 
-/* DIFFICULTY */
-function setDiff(v){
-baseSpeed=v;
-}
+/* SPEED */
+function setSpeed(v){baseSpeed=v;}
 
 /* SHAPES */
 const shapes=[
@@ -230,11 +224,7 @@ const colors=["cyan","yellow","purple","orange","blue"];
 /* CREATE */
 function create(){
 let i=Math.floor(Math.random()*shapes.length);
-return{
-shape:shapes[i],
-color:colors[i],
-x:3,y:0
-};
+return{shape:shapes[i],color:colors[i],x:3,y:0};
 }
 
 /* RESET */
@@ -250,10 +240,9 @@ drawNext();
 
 /* COLLISION */
 function collide(px=piece.x,py=piece.y,shape=piece.shape){
-
-> aminat’k:
 for(let y=0;y<shape.length;y++){
-for(let x=0;x<shape[y].length;x++){
+for(let x=0;x<shape[y].
+length;x++){
 if(shape[y][x]){
 let nx=px+x,ny=py+y;
 if(nx<0||nx>=COLS||ny>=ROWS) return true;
@@ -273,26 +262,15 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
-/* FLASH LINE */
-function flashLine(y){
-const row=document.querySelectorAll("canvas")[0];
-row.classList.add("flash");
-setTimeout(()=>row.classList.remove("flash"),200);
-}
-
-/* CLEAR LINES (ANIMATION) */
+/* CLEAR LINES (SAFE) */
 function clearLines(){
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
-
-flashLine(y);
-
 grid.splice(y,1);
 grid.unshift(Array(COLS).fill(0));
 
 score+=10;
 level=Math.floor(score/50)+1;
-
 baseSpeed=Math.max(200,900-(level-1)*60);
 
 y++;
@@ -409,6 +387,18 @@ function rotate(){
 let r=piece.shape[0].map((_,i)=>piece.shape.map(x=>x[i]).reverse());
 if(!collide(piece.x,piece.y,r)) piece.shape=r;
 }
+
+/* KEYBOARD */
+document.addEventListener("keydown",e=>{
+if(!running) return;
+if(e.key==="p") togglePause();
+if(paused) return;
+
+if(e.key==="ArrowLeft"||e.key==="a") left();
+if(e.key==="ArrowRight"||e.key==="d") right();
+if(e.key==="ArrowDown"||e.key==="s") softDrop();
+if(e.key==="ArrowUp"||e.key==="w") rotate();
+});
 
 /* STATES */
 function startGame(){
