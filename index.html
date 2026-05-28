@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris PRO FIXED</title>
+<title>Tetris PRO MOBILE</title>
 
 <style>
 
@@ -62,7 +62,13 @@ border:2px solid #333;
 margin-top:8px;
 }
 
-/* OVERLAY (glass) */
+/* GRID LINES */
+.gridLine{
+stroke:#111;
+stroke-width:1;
+}
+
+/* OVERLAY */
 .overlay{
 position:absolute;
 top:0;
@@ -77,39 +83,39 @@ justify-content:center;
 align-items:center;
 z-index:50;
 text-align:center;
+padding:20px;
 }
 
 .hidden{display:none}
 
-/* CONTROLS */
+/* MOBILE CONTROLS */
 #controls{
 position:fixed;
 bottom:10px;
 left:50%;
 transform:translateX(-50%);
 display:flex;
-gap:10px;
+gap:12px;
 }
 
 #controls button{
-width:60px;
-height:60px;
-font-size:22px;
+width:70px;
+height:70px;
+font-size:24px;
 }
 
-/* DEVELOPERS (BOTTOM RIGHT SMALL) */
+/* DEV WINDOW IN START */
 #devs{
-position:fixed;
+position:absolute;
 right:10px;
 bottom:10px;
+font-size:11px;
 background:rgba(0,0,0,0.6);
-padding:6px 10px;
+padding:8px 10px;
 border-radius:8px;
-font-size:10px;
-line-height:1.2;
 border:1px solid #333;
-opacity:0.9;
-pointer-events:none;
+line-height:1.2;
+text-align:right;
 }
 
 /* RESPONSIVE */
@@ -117,7 +123,6 @@ pointer-events:none;
 #wrap{flex-direction:column;align-items:center;}
 canvas{width:90vw;max-width:320px;height:auto;}
 #panel{width:90vw;}
-#devs{font-size:9px;}
 }
 
 </style>
@@ -159,14 +164,25 @@ canvas{width:90vw;max-width:320px;height:auto;}
 
 <!-- START -->
 <div id="start" class="overlay">
+
 <h1>TETRIS PRO</h1>
 
-<p>Сложность</p>
+<p>Выбери сложность</p>
+
 <button onclick="setSpeed(1100)">Easy</button>
 <button onclick="setSpeed(800)">Normal</button>
 <button onclick="setSpeed(500)">Hard</button>
 
+<!-- DEVELOPERS (ONLY HERE) -->
+<div id="devs">
+Разработчики:<br>
+Гербекова А.Я<br>
+Урусова А.М<br>
+Абайханова М.А-С
+</div>
+
 <button onclick="startGame()">PLAY</button>
+
 </div>
 
 <!-- PAUSE -->
@@ -179,14 +195,6 @@ canvas{width:90vw;max-width:320px;height:auto;}
 <div id="over" class="overlay hidden">
 <h1>GAME OVER</h1>
 <button onclick="startGame()">RESTART</button>
-</div>
-
-<!-- DEVELOPERS -->
-<div id="devs">
-Разработчики:<br>
-Гербекова А.Я<br>
-Урусова А.М<br>
-Абайханова М.А-С
 </div>
 
 <script>
@@ -241,8 +249,7 @@ drawNext();
 /* COLLISION */
 function collide(px=piece.x,py=piece.y,shape=piece.shape){
 for(let y=0;y<shape.length;y++){
-for(let x=0;x<shape[y].
-length;x++){
+for(let x=0;x<shape[y].length;x++){
 if(shape[y][x]){
 let nx=px+x,ny=py+y;
 if(nx<0||nx>=COLS||ny>=ROWS) return true;
@@ -262,7 +269,7 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
-/* CLEAR LINES (SAFE) */
+/* CLEAR */
 function clearLines(){
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
@@ -271,6 +278,7 @@ grid.unshift(Array(COLS).fill(0));
 
 score+=10;
 level=Math.floor(score/50)+1;
+
 baseSpeed=Math.max(200,900-(level-1)*60);
 
 y++;
@@ -304,17 +312,34 @@ document.getElementById("score").innerText="Score: "+score;
 document.getElementById("level").innerText="Level: "+level;
 }
 
+/* DRAW GRID LINES */
+function drawGrid(){
+ctx.strokeStyle="#111";
+for(let x=0;x<=COLS;x++){
+ctx.beginPath();
+ctx.moveTo(x*SIZE,0);
+ctx.lineTo(x*SIZE,600);
+ctx.stroke();
+}
+for(let y=0;y<=ROWS;y++){
+ctx.beginPath();
+ctx.moveTo(0,y*SIZE);
+ctx.lineTo(300,y*SIZE);
+ctx.stroke();
+}
+}
+
 /* DRAW */
 function drawBlock(x,y,c){
 ctx.fillStyle=c;
 ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
-ctx.strokeStyle="#111";
-ctx.strokeRect(x*SIZE,y*SIZE,SIZE,SIZE);
 }
 
 function draw(){
 ctx.fillStyle="#000";
 ctx.fillRect(0,0,300,600);
+
+drawGrid();
 
 grid.forEach((r,y)=>{
 r.forEach((v,x)=>{
@@ -387,18 +412,6 @@ function rotate(){
 let r=piece.shape[0].map((_,i)=>piece.shape.map(x=>x[i]).reverse());
 if(!collide(piece.x,piece.y,r)) piece.shape=r;
 }
-
-/* KEYBOARD */
-document.addEventListener("keydown",e=>{
-if(!running) return;
-if(e.key==="p") togglePause();
-if(paused) return;
-
-if(e.key==="ArrowLeft"||e.key==="a") left();
-if(e.key==="ArrowRight"||e.key==="d") right();
-if(e.key==="ArrowDown"||e.key==="s") softDrop();
-if(e.key==="ArrowUp"||e.key==="w") rotate();
-});
 
 /* STATES */
 function startGame(){
