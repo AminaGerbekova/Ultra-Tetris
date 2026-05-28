@@ -1,9 +1,10 @@
+> aminat’k:
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris PRO MAX</title>
+<title>Tetris PRO ULTRA</title>
 
 <style>
 
@@ -27,7 +28,7 @@ align-items:flex-start;
 position:relative;
 }
 
-/* GAME */
+/* CANVAS */
 canvas{
 background:#000;
 border:2px solid #333;
@@ -42,11 +43,6 @@ padding:12px;
 border-radius:10px;
 }
 
-h2{
-text-align:center;
-margin:5px 0;
-}
-
 /* BUTTONS */
 button{
 width:100%;
@@ -58,10 +54,7 @@ border:1px solid #444;
 border-radius:6px;
 cursor:pointer;
 }
-
-button:hover{
-background:#333;
-}
+button:hover{background:#333}
 
 /* NEXT */
 #next{
@@ -70,14 +63,15 @@ border:2px solid #333;
 margin-top:8px;
 }
 
-/* OVERLAYS */
+/* OVERLAY (glass effect) */
 .overlay{
 position:absolute;
 top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.92);
+background:rgba(0,0,0,0.65);
+backdrop-filter: blur(6px);
 display:flex;
 flex-direction:column;
 justify-content:center;
@@ -85,9 +79,16 @@ align-items:center;
 z-index:50;
 text-align:center;
 padding:20px;
+transition:0.3s;
 }
 
 .hidden{display:none}
+
+/* DIFFICULTY */
+.diffBtn{
+width:160px;
+margin:5px;
+}
 
 /* CONTROLS */
 #controls{
@@ -103,6 +104,16 @@ gap:10px;
 width:60px;
 height:60px;
 font-size:22px;
+}
+
+/* LINE ANIMATION */
+.flash{
+animation: flash 0.25s linear 3;
+}
+
+@keyframes flash{
+0%{background:white}
+100%{background:black}
 }
 
 /* RESPONSIVE */
@@ -123,7 +134,7 @@ canvas{width:90vw;max-width:320px;height:auto;}
 
 <div id="panel">
 
-<h2>TETRIS PRO MAX</h2>
+<h2>TETRIS PRO</h2>
 
 <p id="score">Score: 0</p>
 <p id="level">Level: 1</p>
@@ -149,17 +160,23 @@ canvas{width:90vw;max-width:320px;height:auto;}
 <button onclick="softDrop()">⬇</button>
 </div>
 
-<!-- START -->
+<!-- START + DIFFICULTY -->
 <div id="start" class="overlay">
 
-<div style="margin-bottom:15px">
-<h3>Разработчики</h3>
+<h1>TETRIS PRO</h1>
+
+<p>Выбери сложность</p>
+
+<button class="diffBtn" onclick="setDiff(1100)">Легко</button>
+<button class="diffBtn" onclick="setDiff(800)">Нормально</button>
+<button class="diffBtn" onclick="setDiff(500)">Сложно</button>
+
+<p style="margin-top:10px;font-size:13px;opacity:0.8">
 Гербекова А.Я<br>
 Урусова А.М<br>
 Абайханова М. А.-С.
-</div>
+</p>
 
-<h1>TETRIS PRO MAX</h1>
 <button onclick="startGame()">PLAY</button>
 
 </div>
@@ -178,30 +195,29 @@ canvas{width:90vw;max-width:320px;height:auto;}
 
 <script>
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 
-const nextCanvas = document.getElementById("next");
-const nctx = nextCanvas.getContext("2d");
+const nextCanvas=document.getElementById("next");
+const nctx=nextCanvas.getContext("2d");
 
-const COLS = 10;
-const ROWS = 20;
-const SIZE = 30;
+const COLS=10, ROWS=20, SIZE=30;
 
-let grid, piece, nextPiece;
+let grid,piece,nextPiece;
 
-let score = 0;
-let level = 1;
-let running = false;
-let paused = false;
+let score=0,level=1;
+let running=false,paused=false;
 
-let dropCounter = 0;
-let lastTime = 0;
+let dropCounter=0,lastTime=0;
+let baseSpeed=900;
 
-let baseSpeed = 900;
+/* DIFFICULTY */
+function setDiff(v){
+baseSpeed=v;
+}
 
 /* SHAPES */
-const shapes = [
+const shapes=[
 [[1,1,1,1]],
 [[1,1],[1,1]],
 [[0,1,0],[1,1,1]],
@@ -209,16 +225,15 @@ const shapes = [
 [[0,0,1],[1,1,1]]
 ];
 
-const colors = ["cyan","yellow","purple","orange","blue"];
+const colors=["cyan","yellow","purple","orange","blue"];
 
-/* PIECE */
+/* CREATE */
 function create(){
 let i=Math.floor(Math.random()*shapes.length);
 return{
 shape:shapes[i],
 color:colors[i],
-x:3,
-y:0
+x:3,y:0
 };
 }
 
@@ -229,17 +244,18 @@ piece=create();
 nextPiece=create();
 score=0;
 level=1;
-baseSpeed=900;
 updateUI();
 drawNext();
 }
 
 /* COLLISION */
 function collide(px=piece.x,py=piece.y,shape=piece.shape){
+
+> aminat’k:
 for(let y=0;y<shape.length;y++){
 for(let x=0;x<shape[y].length;x++){
 if(shape[y][x]){
-let nx=px+x, ny=py+y;
+let nx=px+x,ny=py+y;
 if(nx<0||nx>=COLS||ny>=ROWS) return true;
 if(ny>=0 && grid[ny][nx]) return true;
 }
@@ -257,18 +273,27 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
-/* CLEAR + LEVEL */
+/* FLASH LINE */
+function flashLine(y){
+const row=document.querySelectorAll("canvas")[0];
+row.classList.add("flash");
+setTimeout(()=>row.classList.remove("flash"),200);
+}
+
+/* CLEAR LINES (ANIMATION) */
 function clearLines(){
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
+
+flashLine(y);
+
 grid.splice(y,1);
 grid.unshift(Array(COLS).fill(0));
 
 score+=10;
 level=Math.floor(score/50)+1;
 
-/* 🔥 SPEED INCREASE */
-baseSpeed=Math.max(200,900-(level-1)*70);
+baseSpeed=Math.max(200,900-(level-1)*60);
 
 y++;
 }
@@ -277,7 +302,7 @@ updateUI();
 saveScore();
 }
 
-/* SCORE TABLE */
+/* SCORE */
 let leaderboard=JSON.parse(localStorage.getItem("lb")||"[]");
 
 function saveScore(){
@@ -384,19 +409,6 @@ function rotate(){
 let r=piece.shape[0].map((_,i)=>piece.shape.map(x=>x[i]).reverse());
 if(!collide(piece.x,piece.y,r)) piece.shape=r;
 }
-
-/* KEYBOARD */
-document.addEventListener("keydown",e=>{
-if(!running) return;
-
-if(e.key==="p") togglePause();
-if(paused) return;
-
-if(e.key==="ArrowLeft"||e.key==="a") left();
-if(e.key==="ArrowRight"||e.key==="d") right();
-if(e.key==="ArrowDown"||e.key==="s") softDrop();
-if(e.key==="ArrowUp"||e.key==="w") rotate();
-});
 
 /* STATES */
 function startGame(){
