@@ -1,165 +1,247 @@
-> aminat’k:
 <!DOCTYPE html>
+
 <html lang="ru">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris Ultimate FIX</title>
+
+<title>Tetris PRO</title>
 
 <style>
 
 body{
+
 margin:0;
-background:#0a0a0a;
+
+background:linear-gradient(135deg,#0a0a0a,#111);
+
 display:flex;
+
 justify-content:center;
+
 align-items:center;
+
 min-height:100vh;
+
 font-family:Arial;
+
 color:white;
-overflow-x:hidden;
-padding:20px;
-box-sizing:border-box;
+
+overflow:hidden;
+
 }
+
+/* MAIN LAYOUT */
 
 #wrap{
+
 display:flex;
+
 gap:15px;
-position:relative;
+
 align-items:flex-start;
-flex-wrap:wrap;
-justify-content:center;
+
+position:relative;
+
 }
+
+/* CANVAS */
 
 canvas{
+
 background:#000;
-border:2px solid #444;
+
+border:2px solid #333;
+
 image-rendering:pixelated;
-max-width:100%;
-height:auto;
+
 }
+
+/* PANEL */
 
 #panel{
-width:220px;
+
+width:230px;
+
 background:#111;
-padding:10px;
+
+padding:12px;
+
 border-radius:10px;
-box-sizing:border-box;
+
+box-shadow:0 0 15px rgba(0,0,0,0.5);
+
 }
 
+h2{
+
+margin:5px 0;
+
+text-align:center;
+
+}
+
+/* BUTTONS */
+
 button{
+
 width:100%;
-margin-top:6px;
-padding:8px;
+
+margin-top:8px;
+
+padding:10px;
+
 background:#222;
+
 color:white;
+
 border:1px solid #444;
+
 border-radius:6px;
+
 cursor:pointer;
+
 transition:0.2s;
+
 }
 
 button:hover{
+
 background:#333;
+
 }
+
+/* NEXT BOX */
+
+#next{
+
+background:#000;
+
+border:2px solid #333;
+
+margin-top:8px;
+
+}
+
+/* OVERLAY */
 
 .overlay{
+
 position:absolute;
+
 top:0;
+
 left:0;
+
 width:100%;
+
 height:100%;
+
 background:rgba(0,0,0,0.92);
+
 display:flex;
-align-items:center;
-justify-content:center;
+
 flex-direction:column;
-font-size:28px;
+
+justify-content:center;
+
+align-items:center;
+
 z-index:50;
+
 text-align:center;
+
 padding:20px;
+
 box-sizing:border-box;
+
 }
 
-.hidden{
-display:none;
-}
-
-#nextCanvas{
-background:#000;
-border:2px solid #444;
-margin-top:10px;
-}
+.hidden{display:none}
 
 /* CONTROLS */
 
 #controls{
+
 position:fixed;
+
 bottom:10px;
+
 left:50%;
+
 transform:translateX(-50%);
+
 display:flex;
+
 gap:10px;
-z-index:20;
-flex-wrap:wrap;
-justify-content:center;
+
+z-index:100;
+
 }
 
 #controls button{
+
 width:60px;
+
 height:60px;
+
 font-size:22px;
-padding:0;
+
 }
 
-/* ADAPTIVE */
+/* DEVELOPERS WINDOW */
+
+#devs{
+
+background:rgba(0,0,0,0.85);
+
+padding:12px 18px;
+
+border-radius:10px;
+
+border:1px solid #444;
+
+margin-bottom:15px;
+
+}
+
+/* RESPONSIVE */
 
 @media (max-width:900px){
 
-body{
-align-items:flex-start;
-padding-top:20px;
-padding-bottom:100px;
-}
-
 #wrap{
+
 flex-direction:column;
+
 align-items:center;
+
 }
 
 canvas{
+
 width:90vw;
-max-width:300px;
+
 height:auto;
+
+max-width:320px;
+
 }
 
 #panel{
+
 width:90vw;
-max-width:300px;
-text-align:center;
-}
 
-#controls{
-bottom:15px;
-}
+max-width:320px;
 
-}
-
-@media (max-width:480px){
-
-.overlay{
-font-size:22px;
-}
-
-#controls button{
-width:55px;
-height:55px;
-font-size:20px;
 }
 
 }
 
 </style>
+
 </head>
 
 <body>
@@ -170,22 +252,23 @@ font-size:20px;
 
 <div id="panel">
 
-<h2>TETRIS</h2>
+<h2>TETRIS PRO</h2>
 
 <p id="score">Score: 0</p>
+
 <p id="level">Level: 1</p>
 
-<h3>Следующая фигура</h3>
+<p>Следующая:</p>
 
-<canvas id="nextCanvas" width="120" height="120"></canvas>
+<canvas id="next" width="120" height="120"></canvas>
 
-<h4>🏆 TOP</h4>
-
-<div id="board" style="font-size:12px;opacity:0.8"></div>
+<div id="board" style="font-size:12px;opacity:0.8;margin-top:10px"></div>
 
 <button onclick="startGame()">Start</button>
 
-<button onclick="togglePause()">Pause / Resume</button>
+<button onclick="togglePause()">Pause</button>
+
+</div>
 
 </div>
 
@@ -194,31 +277,34 @@ font-size:20px;
 <div id="controls">
 
 <button onclick="left()">⬅</button>
+
 <button onclick="rotate()">🔄</button>
+
 <button onclick="right()">➡</button>
+
 <button onclick="softDrop()">⬇</button>
-<button onclick="togglePause()">⏸</button>
 
 </div>
 
-<!-- START SCREEN -->
+<!-- START + DEVELOPERS WINDOW -->
 
 <div id="start" class="overlay">
 
-<h1>TETRIS</h1>
+<div id="devs">
 
-<p style="font-size:16px;line-height:1.6;max-width:400px;">
+<h3>Разработчики</h3>
 
-Разработчики:<br>
-Гербекова А.Я.<br>
-Урусова А.М.<br>
+Гербекова А.Я<br>
+
+Урусова А.М<br>
+
 Абайханова М. А.-С.
 
-</p>
+</div>
 
-<button onclick="startGame()" style="max-width:200px;">
-PLAY
-</button>
+<h1>TETRIS PRO</h1>
+
+<button onclick="startGame()">PLAY</button>
 
 </div>
 
@@ -226,11 +312,9 @@ PLAY
 
 <div id="pause" class="overlay hidden">
 
-PAUSED
+<h1>PAUSED</h1>
 
-<button onclick="togglePause()" style="max-width:200px;">
-CONTINUE
-</button>
+<button onclick="togglePause()">CONTINUE</button>
 
 </div>
 
@@ -238,84 +322,47 @@ CONTINUE
 
 <div id="over" class="overlay hidden">
 
-GAME OVER
+<h1>GAME OVER</h1>
 
-<button onclick="startGame()" style="max-width:200px;">
-RESTART
-</button>
-
-</div>
+<button onclick="startGame()">RESTART</button>
 
 </div>
 
 <script>
 
 const canvas = document.getElementById("game");
+
 const ctx = canvas.getContext("2d");
 
-const nextCanvas = document.getElementById("nextCanvas");
-const nextCtx = nextCanvas.getContext("2d");
+const nextCanvas = document.getElementById("next");
+
+const nctx = nextCanvas.getContext("2d");
 
 const COLS = 10;
+
 const ROWS = 20;
+
 const SIZE = 30;
 
 let grid;
 
 let piece;
+
 let nextPiece;
 
 let score = 0;
+
 let level = 1;
 
 let running = false;
+
 let paused = false;
 
-const startScr = document.getElementById("start");
-const pauseScr = document.getElementById("pause");
-const overScr = document.getElementById("over");
-
-/* SPEED */
-
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-let baseSpeed = isMobile ? 1100 : 1400;
-
-let dropInterval = baseSpeed;
-
 let dropCounter = 0;
+
 let lastTime = 0;
 
-/* LEADERBOARD */
-
-let leaderboard = JSON.parse(localStorage.getItem("lb") || "[]");
-
-function saveScore(){
-
-leaderboard.
-
-> aminat’k:
-push(score);
-
-leaderboard.sort((a,b)=>b-a);
-
-leaderboard = leaderboard.slice(0,5);
-
-localStorage.setItem("lb", JSON.stringify(leaderboard));
-
-drawBoard();
-
-}
-
-function drawBoard(){
-
-document.getElementById("board").innerHTML =
-
-leaderboard.length
-? leaderboard.map((s,i)=>`${i+1}. ${s}`).join("<br>")
-: "—";
-
-}
+const baseSpeed = 900;
 
 /* SHAPES */
 
@@ -323,37 +370,34 @@ const shapes = [
 
 [[1,1,1,1]],
 
-[[1,1],
- [1,1]],
+[[1,1],[1,1]],
 
-[[0,1,0],
- [1,1,1]],
+[[0,1,0],[1,1,1]],
 
-[[1,0,0],
- [1,1,1]],
+[[1,0,0],[1,1,1]],
 
-[[0,0,1],
- [1,1,1]]
+[[0,0,1],[1,1,1]]
 
 ];
 
-const colors = [
-"cyan",
-"yellow",
-"purple",
-"orange",
-"blue"
-];
+const colors = ["cyan","yellow","purple","orange","blue"];
 
-function createPiece(){
+/* CREATE PIECE */
+
+function create(){
 
 let i = Math.floor(Math.random()*shapes.length);
 
 return{
+
 shape: shapes[i],
+
 color: colors[i],
-x: 3,
-y: 0
+
+x:3,
+
+y:0
+
 };
 
 }
@@ -362,65 +406,26 @@ y: 0
 
 function reset(){
 
-grid = Array.from(
-{length:ROWS},
-()=>Array(COLS).fill(0)
-);
+grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
+
+piece = create();
+
+nextPiece = create();
 
 score = 0;
+
 level = 1;
-
-dropInterval = baseSpeed;
-
-piece = createPiece();
-nextPiece = createPiece();
 
 updateUI();
 
-}
-
-/* NEXT FIGURE */
-
-function drawNext(){
-
-nextCtx.fillStyle = "#000";
-nextCtx.fillRect(0,0,120,120);
-
-nextPiece.shape.forEach((row,y)=>{
-
-row.forEach((v,x)=>{
-
-if(v){
-
-nextCtx.fillStyle = nextPiece.color;
-
-nextCtx.fillRect(
-x*25 + 20,
-y*25 + 20,
-25,
-25
-);
-
-nextCtx.strokeStyle = "#111";
-
-nextCtx.strokeRect(
-x*25 + 20,
-y*25 + 20,
-25,
-25
-);
-
-}
-
-});
-
-});
+drawNext();
 
 }
 
 /* COLLISION */
 
-function collide(px = piece.x, py = piece.y, shape = piece.shape){
+function collide(px=piece.
+x,py=piece.y,shape=piece.shape){
 
 for(let y=0;y<shape.length;y++){
 
@@ -428,14 +433,13 @@ for(let x=0;x<shape[y].length;x++){
 
 if(shape[y][x]){
 
-let nx = px + x;
-let ny = py + y;
+let nx = px+x;
 
-if(nx < 0 || nx >= COLS) return true;
+let ny = py+y;
 
-if(ny >= ROWS) return true;
+if(nx<0||nx>=COLS||ny>=ROWS) return true;
 
-if(ny >= 0 && grid[ny] && grid[ny][nx]) return true;
+if(ny>=0 && grid[ny][nx]) return true;
 
 }
 
@@ -455,11 +459,7 @@ piece.shape.forEach((r,y)=>{
 
 r.forEach((v,x)=>{
 
-if(v){
-
-grid[piece.y+y][piece.x+x] = piece.color;
-
-}
+if(v) grid[piece.y+y][piece.x+x] = piece.color;
 
 });
 
@@ -479,14 +479,9 @@ grid.splice(y,1);
 
 grid.unshift(Array(COLS).fill(0));
 
-score += 10;
+score+=10;
 
-level = Math.floor(score/80)+1;
-
-dropInterval = Math.max(
-250,
-baseSpeed-(level-1)*80
-);
+level=Math.floor(score/50)+1;
 
 y++;
 
@@ -502,41 +497,29 @@ updateUI();
 
 function updateUI(){
 
-document.getElementById("score").innerText =
-"Score: " + score;
+document.getElementById("score").innerText="Score: "+score;
 
-document.getElementById("level").innerText =
-"Level: " + level;
+document.getElementById("level").innerText="Level: "+level;
 
 }
 
 /* DRAW */
 
-function drawBlock(x,y,color){
+function drawBlock(x,y,c){
 
-ctx.fillStyle = color;
+ctx.fillStyle=c;
 
-ctx.fillRect(
-x*SIZE,
-y*SIZE,
-SIZE,
-SIZE
-);
+ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
 
-ctx.strokeStyle = "#111";
+ctx.strokeStyle="#111";
 
-ctx.strokeRect(
-x*SIZE,
-y*SIZE,
-SIZE,
-SIZE
-);
+ctx.strokeRect(x*SIZE,y*SIZE,SIZE,SIZE);
 
 }
 
 function draw(){
 
-ctx.fillStyle = "#000";
+ctx.fillStyle="#000";
 
 ctx.fillRect(0,0,300,600);
 
@@ -544,9 +527,7 @@ grid.forEach((r,y)=>{
 
 r.forEach((v,x)=>{
 
-if(v){
-drawBlock(x,y,v);
-}
+if(v) drawBlock(x,y,v);
 
 });
 
@@ -556,13 +537,31 @@ piece.shape.forEach((r,y)=>{
 
 r.forEach((v,x)=>{
 
+if(v) drawBlock(piece.x+x,piece.y+y,piece.color);
+
+});
+
+});
+
+}
+
+/* NEXT PIECE */
+
+function drawNext(){
+
+nctx.fillStyle="#000";
+
+nctx.fillRect(0,0,120,120);
+
+nextPiece.shape.forEach((r,y)=>{
+
+r.forEach((v,x)=>{
+
 if(v){
 
-drawBlock(
-piece.x+x,
-piece.y+y,
-piece.color
-);
+nctx.fillStyle=nextPiece.color;
+
+nctx.fillRect(x*25+20,y*25+20,25,25);
 
 }
 
@@ -582,48 +581,39 @@ clearLines();
 
 piece = nextPiece;
 
-piece.x = 3;
-piece.y = 0;
+nextPiece = create();
 
-nextPiece = createPiece();
+piece.x=3;
+
+piece.y=0;
 
 drawNext();
 
-if(collide()){
-
-gameOver();
-
-}
+if(collide()) gameOver();
 
 }
 
 /* LOOP */
 
-function update(time = 0){
+function update(t=0){
 
 if(!running) return;
 
-const delta = time - lastTime;
+let delta=t-lastTime;
 
-lastTime = time;
+lastTime=t;
 
 if(!paused){
 
-dropCounter += delta;
+dropCounter+=delta;
 
-if(dropCounter > dropInterval){
+if(dropCounter>baseSpeed){
 
 piece.y++;
 
-if(collide()){
+if(collide()){piece.y--;lock();}
 
-piece.y--;
-
-lock();
-
-}
-
-dropCounter = 0;
+dropCounter=0;
 
 }
 
@@ -635,71 +625,17 @@ requestAnimationFrame(update);
 
 }
 
-/* KEYBOARD */
+/* CONTROLS */
 
-document.addEventListener("keydown",e=>{
+function left(){if(!paused&&!collide(piece.x-1,piece.y)) piece.x--;}
 
-if(!running) return;
+function right(){if(!paused&&!collide(piece.x+1,piece.y)) piece.x++;}
 
-if(e.key === "p"){
-togglePause();
-}
+function rotate(){
 
-if(paused) return;
+let r=piece.shape[0].map((_,i)=>piece.shape.map(x=>x[i]).reverse());
 
-if(e.key === "ArrowLeft"){
-
-if(!collide(piece.x-1,piece.y)){
-piece.x--;
-}
-
-}
-
-if(e.key === "ArrowRight"){
-
-if(!collide(piece.x+1,piece.y)){
-piece.x++;
-}
-
-}
-
-if(e.key === "ArrowDown"){
-softDrop();
-}
-
-if(e.key === "ArrowUp"){
-
-let rot = piece.shape[0].map((_,i)=>
-piece.shape.map(r=>r[i]).reverse()
-);
-
-if(!collide(piece.x,piece.y,rot)){
-piece.shape = rot;
-}
-
-}
-
-});
-
-/* MOBILE */
-
-function left(){
-
-if(paused) return;
-
-if(!collide(piece.x-1,piece.y)){
-piece.x--;
-}
-
-}
-
-function right(){
-
-if(paused) return;
-
-if(!collide(piece.x+1,piece.y)){
-piece.x++;
-}
+if(!collide(piece.x,piece.y,r)) piece.shape=r;
 
 }
 
@@ -709,54 +645,29 @@ if(paused) return;
 
 piece.y++;
 
-if(collide()){
-
-piece.y--;
-
-lock();
-
-}
-
-}
-
-function rotate(){
-
-if(paused) return;
-
-let rot = piece.shape[0].map((_,i)=>
-piece.shape.map(r=>r[i]).reverse()
-);
-
-if(!collide(piece.x,piece.y,rot)){
-piece.shape = rot;
-}
+if(collide()){piece.y--;lock();}
 
 }
 
 /* STATES */
 
-> aminat’k:
 function startGame(){
 
-startScr.classList.add("hidden");
+document.getElementById("start").classList.add("hidden");
 
-overScr.classList.add("hidden");
+document.getElementById("pause").classList.add("hidden");
 
-pauseScr.classList.add("hidden");
+document.getElementById("over").classList.add("hidden");
 
 reset();
 
-running = true;
+running=true;
 
-paused = false;
+paused=false;
 
-dropCounter = 0;
+dropCounter=0;
 
-lastTime = 0;
-
-drawBoard();
-
-drawNext();
+lastTime=0;
 
 update();
 
@@ -766,19 +677,17 @@ function togglePause(){
 
 if(!running) return;
 
-paused = !paused;
+paused=!paused;
 
-pauseScr.classList.toggle("hidden", !paused);
+document.getElementById("pause").classList.toggle("hidden",!paused);
 
 }
 
 function gameOver(){
 
-running = false;
+running=false;
 
-overScr.classList.remove("hidden");
-
-saveScore();
+document.getElementById("over").classList.remove("hidden");
 
 }
 
@@ -786,13 +695,8 @@ saveScore();
 
 reset();
 
-drawBoard();
-
-drawNext();
-
-draw();
-
 </script>
 
 </body>
+
 </html>
