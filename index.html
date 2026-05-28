@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris PRO BEAUTY</title>
+<title>Tetris PRO FINAL</title>
 
 <style>
 
@@ -19,7 +19,6 @@ color:white;
 overflow:hidden;
 }
 
-/* MAIN WRAP */
 #wrap{
 display:flex;
 gap:15px;
@@ -27,15 +26,13 @@ align-items:flex-start;
 position:relative;
 }
 
-/* CANVAS */
 canvas{
 background:#000;
 border:2px solid rgba(255,255,255,0.15);
 image-rendering:pixelated;
-box-shadow: 0 0 20px rgba(0,0,0,0.6);
+box-shadow:0 0 20px rgba(0,0,0,0.6);
 }
 
-/* PANEL */
 #panel{
 width:240px;
 background:rgba(20,20,20,0.85);
@@ -45,12 +42,6 @@ border-radius:12px;
 border:1px solid rgba(255,255,255,0.08);
 }
 
-h2{
-text-align:center;
-margin:5px 0;
-}
-
-/* BUTTONS */
 button{
 width:100%;
 margin-top:8px;
@@ -60,29 +51,27 @@ color:white;
 border:1px solid rgba(255,255,255,0.15);
 border-radius:8px;
 cursor:pointer;
-transition:0.2s;
 }
 
 button:hover{
 background:rgba(255,255,255,0.18);
 }
 
-/* NEXT */
 #next{
 background:#000;
 border:1px solid rgba(255,255,255,0.15);
 margin-top:8px;
 }
 
-/* GLASS OVERLAY */
+/* OVERLAYS */
 .overlay{
 position:absolute;
 top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.65);   /* 👈 ПРОЗРАЧНОСТЬ */
-backdrop-filter: blur(8px);     /* 👈 GLASS EFFECT */
+background:rgba(0,0,0,0.65);
+backdrop-filter: blur(8px);
 display:flex;
 flex-direction:column;
 justify-content:center;
@@ -111,33 +100,11 @@ font-size:22px;
 border-radius:12px;
 }
 
-/* DEV BLOCK (ONLY START) */
+/* DEV ONLY START */
 #devBox{
 margin-top:15px;
 font-size:11px;
 opacity:0.8;
-}
-
-/* SMALL DEV BOX (INGAME) */
-#devs{
-position:fixed;
-right:10px;
-bottom:90px;
-font-size:10px;
-background:rgba(0,0,0,0.5);
-padding:6px 10px;
-border-radius:8px;
-border:1px solid rgba(255,255,255,0.1);
-line-height:1.2;
-text-align:right;
-}
-
-/* RESPONSIVE */
-@media (max-width:900px){
-#wrap{flex-direction:column;align-items:center;}
-canvas{width:90vw;max-width:320px;}
-#panel{width:90vw;}
-#devs{bottom:110px;}
 }
 
 </style>
@@ -177,7 +144,7 @@ canvas{width:90vw;max-width:320px;}
 <button onclick="softDrop()">⬇</button>
 </div>
 
-<!-- START SCREEN (WITH DEVELOPERS) -->
+<!-- START SCREEN -->
 <div id="start" class="overlay">
 
 <h1>TETRIS PRO</h1>
@@ -205,17 +172,9 @@ canvas{width:90vw;max-width:320px;}
 <button onclick="startGame()">RESTART</button>
 </div>
 
-<!-- SMALL DEV BOX (INGAME) -->
-<div id="devs">
-Разработчики:<br>
-Гербекова А.Я<br>
-Урусова А.М<br>
-Абайханова М.А-С
-</div>
-
 <script>
 
-/* === CORE === */
+/* ===== CORE ===== */
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 
@@ -231,6 +190,8 @@ let running=false,paused=false;
 let dropCounter=0,lastTime=0;
 let baseSpeed=900;
 
+let clearingRows=[];
+
 /* SHAPES */
 const shapes=[
 [[1,1,1,1]],
@@ -244,9 +205,13 @@ const colors=["cyan","yellow","purple","orange","blue"];
 
 /* CREATE */
 function create(){
-let i=Math.floor(Math.
-random()*shapes.length);
-return{shape:shapes[i],color:colors[i],x:3,y:0};
+let i=Math.floor(Math.random()*shapes.length);
+return{
+shape:shapes[i],
+color:colors[i],
+x:3,
+y:0
+};
 }
 
 /* RESET */
@@ -284,22 +249,37 @@ if(v) grid[piece.y+y][piece.x+x]=piece.color;
 });
 }
 
-/* CLEAR */
+/* CLEAR (ANIMATED + SMOOTH SPEED) */
 function clearLines(){
+
+clearingRows=[];
+
 for(let y=ROWS-1;y>=0;y--){
 if(grid[y].every(v=>v)){
-grid.splice(y,1);
+clearingRows.push(y);
+}
+}
+
+if(clearingRows.length===0) return;
+
+setTimeout(()=>{
+
+for(let i=0;i<clearingRows.length;i++){
+grid.splice(clearingRows[i],1);
 grid.unshift(Array(COLS).fill(0));
-
-score+=10;
-level=Math.floor(score/50)+1;
-baseSpeed=Math.max(200,900-(level-1)*60);
-
-y++;
 }
-}
+
+score += clearingRows.length * 10;
+level = 1 + Math.floor(score / 50);
+
+/* SMOOTH SPEED */
+baseSpeed = Math.max(120, 900 * Math.pow(0.88, level - 1));
+
 updateUI();
 saveScore();
+clearingRows=[];
+
+},120);
 }
 
 /* SCORE */
@@ -326,9 +306,9 @@ document.getElementById("score").innerText="Score: "+score;
 document.getElementById("level").innerText="Level: "+level;
 }
 
-/* GRID BEAUTY */
+/* GRID */
 function drawGrid(){
-ctx.strokeStyle="rgba(255,255,255,0.06)";
+ctx.strokeStyle="rgba(255,255,255,0.08)";
 for(let x=0;x<=COLS;x++){
 ctx.beginPath();
 ctx.moveTo(x*SIZE,0);
@@ -350,15 +330,26 @@ ctx.fillRect(0,0,300,600);
 
 drawGrid();
 
+/* blocks */
 grid.forEach((r,y)=>{
 r.forEach((v,x)=>{
+
 if(v){
+
+let blink = clearingRows.includes(y);
+
+ctx.globalAlpha = blink ? 0.3 : 1;
+
 ctx.fillStyle=v;
 ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
+
+ctx.globalAlpha = 1;
 }
+
 });
 });
 
+/* piece */
 piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
 if(v){
@@ -408,6 +399,7 @@ lastTime=t;
 
 if(!paused){
 dropCounter+=delta;
+
 if(dropCounter>baseSpeed){
 piece.y++;
 if(collide()){piece.y--;lock();}
@@ -475,5 +467,6 @@ drawBoard();
 drawNext();
 
 </script>
+
 </body>
 </html>
