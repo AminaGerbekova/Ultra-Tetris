@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tetris PRO FINAL FIX</title>
+<title>Tetris PRO FIX+</title>
 
 <style>
 
@@ -63,7 +63,6 @@ border:1px solid rgba(255,255,255,0.15);
 margin-top:8px;
 }
 
-/* OVERLAYS */
 .overlay{
 position:absolute;
 top:0;
@@ -83,7 +82,6 @@ padding:20px;
 
 .hidden{display:none}
 
-/* CONTROLS */
 #controls{
 position:fixed;
 bottom:10px;
@@ -100,14 +98,13 @@ font-size:22px;
 border-radius:12px;
 }
 
-/* DEV BOX (ONLY START SCREEN) */
 #devBox{
 margin-top:15px;
 font-size:11px;
 opacity:0.8;
 }
 
-/* RESPONSIVE FIX */
+/* MOBILE */
 @media (max-width:768px){
 #wrap{
 flex-direction:column;
@@ -118,7 +115,6 @@ gap:10px;
 canvas{
 width:92vw;
 max-width:340px;
-height:auto;
 }
 
 #panel{
@@ -131,7 +127,6 @@ width:72px;
 height:72px;
 font-size:24px;
 }
-
 }
 
 </style>
@@ -201,6 +196,11 @@ font-size:24px;
 
 <script>
 
+/* INIT LOCALSTORAGE */
+if(!localStorage.getItem("lb")){
+localStorage.setItem("lb", JSON.stringify([]));
+}
+
 /* CORE */
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
@@ -216,6 +216,9 @@ let running=false,paused=false;
 
 let dropCounter=0,lastTime=0;
 let baseSpeed=900;
+
+/* SCORE */
+let leaderboard=JSON.parse(localStorage.getItem("lb")||"[]");
 
 /* SHAPES */
 const shapes=[
@@ -286,21 +289,22 @@ updateUI();
 saveScore();
 }
 
-/* SCORE */
-let leaderboard=JSON.parse(localStorage.getItem("lb")||"[]");
-
+/* SCORE SAVE */
 function saveScore(){
+leaderboard=JSON.parse(localStorage.getItem("lb")||"[]");
+
 leaderboard.push(score);
 leaderboard.sort((a,b)=>b-a);
 leaderboard=leaderboard.slice(0,5);
+
 localStorage.setItem("lb",JSON.stringify(leaderboard));
 drawBoard();
 }
 
 function drawBoard(){
 document.getElementById("board").innerHTML=
-leaderboard.length?
-leaderboard.map((s,i)=>`${i+1}. ${s}`).join("<br>")
+leaderboard.length
+? leaderboard.map((s,i)=>`${i+1}. ${s}`).join("<br>")
 :"—";
 }
 
@@ -310,7 +314,17 @@ document.getElementById("score").innerText="Score: "+score;
 document.getElementById("level").innerText="Level: "+level;
 }
 
-/* ===== FIXED GRID LINES (VISIBLE ON PC) ===== */
+/* BLOCK DRAW (NEW FIX) */
+function drawBlock(x,y,color){
+ctx.fillStyle=color;
+ctx.fillRect(x,y,SIZE,SIZE);
+
+ctx.strokeStyle="rgba(0,0,0,0.4)";
+ctx.lineWidth=2;
+ctx.strokeRect(x,y,SIZE,SIZE);
+}
+
+/* GRID */
 function drawGrid(){
 ctx.strokeStyle="rgba(255,255,255,0.12)";
 ctx.lineWidth=1;
@@ -340,8 +354,7 @@ drawGrid();
 grid.forEach((r,y)=>{
 r.forEach((v,x)=>{
 if(v){
-ctx.fillStyle=v;
-ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
+drawBlock(x*SIZE,y*SIZE,v);
 }
 });
 });
@@ -349,8 +362,7 @@ ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
 piece.shape.forEach((r,y)=>{
 r.forEach((v,x)=>{
 if(v){
-ctx.fillStyle=piece.color;
-ctx.fillRect((piece.x+x)*SIZE,(piece.y+y)*SIZE,SIZE,SIZE);
+drawBlock((piece.x+x)*SIZE,(piece.y+y)*SIZE,piece.color);
 }
 });
 });
